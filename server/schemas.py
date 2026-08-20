@@ -79,6 +79,9 @@ class DatasetCreateRequest(BaseModel):
     class_count: int = 1
     class_names: list[str] = Field(default_factory=list)
     download_url: str = ""
+    # 高级参数：YAML 键值对，写入数据集配置文件（官方支持 path/train/val/test/names/nc/download，
+    # pose 任务还可配置 kpt_shape、flip_idx 等任意键）
+    extra_yaml: str = ""
 
 
 class SettingsUpdateRequest(BaseModel):

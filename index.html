@@ -159,6 +159,7 @@
         <div><label for="ds-nc">类别数量</label><input id="ds-nc" type="number" value="1" min="1" /></div>
         <div class="full"><label for="ds-names">类别名称（逗号分隔）</label><input id="ds-names" type="text" placeholder="person, car, bus" /></div>
         <div class="full"><label for="ds-download">下载地址</label><input id="ds-download" type="text" placeholder="可选" /></div>
+        <div class="full"><label for="ds-extra">高级参数（可选，YAML 键值对）</label><textarea id="ds-extra" rows="3" style="width:100%;resize:vertical;padding:9px 12px;border:1px solid #dce2ed;border-radius:9px;font:inherit;font-size:13px;outline:none;color:#43516a" placeholder="官方支持键：path / train / val / test / names / nc / download&#10;pose 任务可加 kpt_shape、flip_idx 等任意键。示例：&#10;kpt_shape: [17, 3]"></textarea></div>
       </div>
       <div class="actions"><button class="btn" id="ds-cancel" type="button">取消</button><button class="btn primary" id="ds-submit" type="button">创建数据集</button></div>
     </div>
@@ -782,11 +783,12 @@
         document.getElementById('ds-nc').value = item.class_count || 1;
         document.getElementById('ds-names').value = Array.isArray(item.names) ? item.names.join(', ') : '';
         document.getElementById('ds-download').value = item.download || '';
+        document.getElementById('ds-extra').value = item.extra_yaml || '';
       } else {
         title.textContent = '新建数据集';
         submit.textContent = '创建数据集';
         document.getElementById('ds-name').readOnly = false;
-        ['ds-name', 'ds-root', 'ds-test', 'ds-names', 'ds-download'].forEach(id => { document.getElementById(id).value = ''; });
+        ['ds-name', 'ds-root', 'ds-test', 'ds-names', 'ds-download', 'ds-extra'].forEach(id => { document.getElementById(id).value = ''; });
         document.getElementById('ds-train').value = 'images/train';
         document.getElementById('ds-val').value = 'images/val';
         document.getElementById('ds-nc').value = '1';
@@ -806,6 +808,7 @@
         class_count: Number(document.getElementById('ds-nc').value) || 1,
         class_names: document.getElementById('ds-names').value.split(/[,，;；\s]+/).filter(Boolean),
         download_url: document.getElementById('ds-download').value.trim(),
+        extra_yaml: document.getElementById('ds-extra').value.trim(),
       };
       if (!payload.name || !payload.root_path) { showToast('请填写名称与数据根目录'); return; }
       const method = dsModalMode === 'edit' ? 'PUT' : 'POST';

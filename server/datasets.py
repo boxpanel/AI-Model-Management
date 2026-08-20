@@ -8,6 +8,9 @@ import yaml
 
 from .database import Database
 
+# 数据集 YAML 的标准键（ultralytics 官方），其余键作为高级参数保留
+_STANDARD_KEYS = {"path", "train", "val", "test", "names", "nc", "download"}
+
 BUILTIN_DATASETS = [
     {
         "name": "coco8.yaml",
@@ -86,6 +89,9 @@ class DatasetService:
         for path in sorted(self.datasets_dir.glob("*.yaml")):
             info = self._read_yaml_full(path)
             rel = str(path.relative_to(self.base_dir)).replace("\\", "/")
+            extra_yaml = ""
+            if info.get("extra"):
+                extra_yaml = yaml.safe_dump(info["extra"], allow_unicode=True, sort_keys=False).strip()
             if path.name in index:
                 entry = items[index[path.name]]
                 entry["yaml_path"] = rel
@@ -96,6 +102,7 @@ class DatasetService:
                 entry["test"] = info.get("test")
                 entry["names"] = info.get("class_names")
                 entry["download"] = info.get("download")
+                entry["extra_yaml"] = extra_yaml
             else:
                 items.append(
                     {
@@ -110,6 +117,7 @@ class DatasetService:
                         "test": info.get("test", ""),
                         "names": info.get("class_names", []),
                         "download": info.get("download", ""),
+                        "extra_yaml": extra_yaml,
                     }
                 )
                 index[path.name] = len(items) - 1
@@ -130,6 +138,7 @@ class DatasetService:
                 names = list(names.values())
             if not isinstance(names, list):
                 names = []
+            extra = {k: v for k, v in data.items() if k not in _STANDARD_KEYS}
             return {
                 "root_path": data.get("path", ""),
                 "train": data.get("train", ""),
@@ -138,6 +147,7 @@ class DatasetService:
                 "class_count": data.get("nc", 0),
                 "class_names": names,
                 "download": data.get("download", ""),
+                "extra": extra,
             }
         except Exception:
             return {}
@@ -152,6 +162,7 @@ class DatasetService:
         class_names: list[str] | None = None,
         test_path: str = "",
         download_url: str = "",
+        extra_yaml: str = "",
     ) -> dict[str, str]:
         if not name.endswith(".yaml"):
             name = f"{name}.yaml"
@@ -173,6 +184,14 @@ class DatasetService:
             payload["test"] = test_path
         if download_url:
             payload["download"] = download_url
+        if extra_yaml:
+            try:
+                extra = yaml.safe_load(extra_yaml) or {}
+            except Exception as exc:
+                raise ValueError(f"高级参数 YAML 格式错误：{exc}") from exc
+            if not isinstance(extra, dict):
+                raise ValueError("高级参数必须是键值对（如 kpt_shape: [17, 3]）")
+            payload.update(extra)
         target.write_text(yaml.safe_dump(payload, allow_unicode=True, sort_keys=False), encoding="utf-8")
         rel = str(target.relative_to(self.base_dir.resolve())).replace("\\", "/")
         self.db.register_dataset(name=name, yaml_path=rel, root_path=root_path, class_count=class_count)
