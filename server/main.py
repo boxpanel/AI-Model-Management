@@ -71,7 +71,7 @@ async def login(payload: dict[str, str]) -> dict[str, Any]:
     if not user or not auth_service.verify_password(password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="用户名或密码错误")
     token = auth_service.issue_token(username)
-    return {"ok": True, "token": token, "username": username}
+    return {"ok": True, "token": token, "username": username, "is_admin": bool(user["is_admin"])}
 
 
 @app.post("/api/logout")
@@ -89,7 +89,8 @@ async def auth_me(authorization: str | None = None) -> dict[str, Any]:
     username = auth_service.validate_token(authorization[7:].strip())
     if not username:
         raise HTTPException(status_code=401, detail="登录已过期")
-    return {"ok": True, "username": username}
+    user = db.get_user(username)
+    return {"ok": True, "username": username, "is_admin": bool(user["is_admin"]) if user else False}
 
 
 @app.post("/api/change-password")
@@ -108,6 +109,88 @@ async def change_password(payload: dict[str, str], authorization: str | None = N
         raise HTTPException(status_code=400, detail="新密码至少 6 位")
     db.update_password(username, auth_service.hash_password(new))
     return {"ok": True, "message": "密码已修改"}
+
+
+def _current_user(authorization: str | None) -> dict[str, Any] | None:
+    """从 Bearer Token 解析当前登录用户。"""
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+    username = auth_service.validate_token(authorization[7:].strip())
+    if not username:
+        return None
+    return db.get_user(username)
+
+
+# ---------- 用户管理（仅超级管理员） ----------
+@app.get("/api/users")
+async def users_list(authorization: str | None = None) -> dict[str, Any]:
+    user = _current_user(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="未登录")
+    rows = db.get_users()
+    return {
+        "ok": True,
+        "users": [
+            {
+                "id": r["id"],
+                "username": r["username"],
+                "is_admin": bool(r["is_admin"]),
+                "created_at": r["created_at"],
+            }
+            for r in rows
+        ],
+    }
+
+
+@app.post("/api/users")
+async def user_create(payload: dict[str, str], authorization: str | None = None) -> dict[str, Any]:
+    user = _current_user(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="未登录")
+    if not user["is_admin"]:
+        raise HTTPException(status_code=403, detail="仅超级管理员可管理用户")
+    username = (payload.get("username") or "").strip()
+    password = payload.get("password") or ""
+    if not username or len(password) < 6:
+        raise HTTPException(status_code=400, detail="用户名必填，密码至少 6 位")
+    if db.get_user(username):
+        raise HTTPException(status_code=400, detail="用户名已存在")
+    db.create_user(username, auth_service.hash_password(password), is_admin=False)
+    return {"ok": True, "message": f"已新增用户 {username}"}
+
+
+@app.put("/api/users")
+async def user_update(payload: dict[str, str], authorization: str | None = None) -> dict[str, Any]:
+    user = _current_user(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="未登录")
+    if not user["is_admin"]:
+        raise HTTPException(status_code=403, detail="仅超级管理员可管理用户")
+    username = (payload.get("username") or "").strip()
+    new_password = payload.get("password") or ""
+    target = db.get_user(username)
+    if not target:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    if len(new_password) < 6:
+        raise HTTPException(status_code=400, detail="新密码至少 6 位")
+    db.update_password(username, auth_service.hash_password(new_password))
+    return {"ok": True, "message": f"已重置 {username} 的密码"}
+
+
+@app.delete("/api/users")
+async def user_delete(username: str, authorization: str | None = None) -> dict[str, Any]:
+    user = _current_user(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="未登录")
+    if not user["is_admin"]:
+        raise HTTPException(status_code=403, detail="仅超级管理员可管理用户")
+    target = db.get_user(username)
+    if not target:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    if target["is_admin"]:
+        raise HTTPException(status_code=400, detail="超级管理员不可删除")
+    db.delete_user(username)
+    return {"ok": True, "message": f"已删除用户 {username}"}
 
 
 # 业务接口鉴权：除登录/健康检查外，所有 /api/ 请求都需要 Bearer Token

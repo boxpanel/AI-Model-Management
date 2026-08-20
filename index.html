@@ -146,6 +146,10 @@
           </div>
           <div class="actions"><button class="btn primary" id="change-password-btn" type="button">修改密码</button><button class="btn" id="logout-btn" type="button">退出登录</button></div>
         </section>
+        <section class="card" style="margin-top:22px;display:none" id="user-mgmt-card">
+          <div class="list-head"><h2>用户管理</h2><span class="text-small" id="user-list-status"></span><button class="btn primary" id="add-user-btn" type="button">+ 新增用户</button></div>
+          <div id="user-list" class="list-grid"></div>
+        </section>
       </section>
     </main>
   </div>
@@ -190,6 +194,16 @@
       <div class="actions"><button class="btn" id="dir-up" type="button">上级目录</button><button class="btn primary" id="dir-confirm" type="button">选择当前目录</button></div>
     </div>
   </div>
+  <div class="modal-mask" id="user-modal" style="display:none">
+    <div class="modal">
+      <div class="modal-head"><h2>新增用户</h2><button class="modal-close" id="user-modal-close" type="button">×</button></div>
+      <div class="form-grid">
+        <div><label for="nu-name">用户名</label><input id="nu-name" type="text" placeholder="如 zhangsan" /></div>
+        <div><label for="nu-pwd">密码（至少 6 位）</label><input id="nu-pwd" type="password" placeholder="••••••" /></div>
+      </div>
+      <div class="actions"><button class="btn" id="user-modal-cancel" type="button">取消</button><button class="btn primary" id="user-modal-submit" type="button">创建</button></div>
+    </div>
+  </div>
   <div class="login-mask" id="login-mask" style="display:none">
     <div class="login-box">
       <h1>VisionLab</h1>
@@ -207,6 +221,7 @@
       : 'http://127.0.0.1:80';
     let ws, uploadedWeightsPath = '', backendOnline = false, trainPoints = ['40,38'], valPoints = ['40,32'];
     let authToken = localStorage.getItem('visionlab-token') || '', appInited = false, wsStop = false;
+    let currentUserIsAdmin = false;
 
     async function api(path, options = {}) {
       const { _skip401 = false, headers = {}, ...rest } = options;
@@ -251,6 +266,7 @@
         });
         authToken = res.token || '';
         localStorage.setItem('visionlab-token', authToken);
+        currentUserIsAdmin = !!res.is_admin;
         document.getElementById('login-pwd').value = '';
         hideLogin();
         initApp();
@@ -505,7 +521,8 @@
     (async function bootstrap() {
       if (authToken) {
         try {
-          await api('/api/auth/me');
+          const me = await api('/api/auth/me');
+          currentUserIsAdmin = !!me.is_admin;
           hideLogin();
           initApp();
           return;
@@ -533,6 +550,7 @@
         else if (view === 'models') loadModels();
         else if (view === 'tasks') { loadTasks(); loadDrafts(); }
         else if (view === 'environment') loadEnvironment();
+        else if (view === 'settings') showUserMgmt();
       });
     });
     async function loadDatasets() {
@@ -954,6 +972,73 @@
     document.getElementById('logout-btn').addEventListener('click', () => {
       api('/api/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: authToken }), _skip401: true }).catch(() => {});
       logout();
+    });
+    // ---------- 用户管理（仅超级管理员） ----------
+    function showUserMgmt() {
+      const card = document.getElementById('user-mgmt-card');
+      card.style.display = currentUserIsAdmin ? '' : 'none';
+      if (currentUserIsAdmin) loadUsers();
+    }
+    async function loadUsers() {
+      const box = document.getElementById('user-list');
+      const status = document.getElementById('user-list-status');
+      try {
+        const res = await api('/api/users');
+        if (!res.ok) { status.textContent = res.error || '加载失败'; return; }
+        status.textContent = '共 ' + res.users.length + ' 个用户';
+        box.innerHTML = '';
+        res.users.forEach(u => {
+          const isAdmin = !!u.is_admin;
+          const div = document.createElement('div'); div.className = 'list-item';
+          const actions = isAdmin
+            ? '<span class="badge custom">超级管理员</span>'
+            : '<span class="badge upload">普通用户</span>';
+          const btns = isAdmin
+            ? '<button class="btn-link" data-user-pwd="' + u.username + '">重置密码</button>'
+            : '<button class="btn-link" data-user-pwd="' + u.username + '">重置密码</button><button class="btn-link danger" data-user-del="' + u.username + '">删除</button>';
+          div.innerHTML = '<h3>' + u.username + '</h3><div class="meta">' + actions + '</div><div class="time-row"><span>创建时间</span><b>' + formatTime(u.created_at) + '</b></div><div class="item-actions">' + btns + '</div>';
+          box.appendChild(div);
+          div.querySelector('[data-user-pwd]').addEventListener('click', async () => {
+            const np = prompt('为「' + u.username + '」设置新密码（至少 6 位）：');
+            if (!np) return;
+            try {
+              const r = await api('/api/users', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: u.username, password: np }) });
+              showToast(r.message || '密码已重置');
+            } catch (e) { showToast('操作失败：' + (parseErr(e) || '')); }
+          });
+          const delBtn = div.querySelector('[data-user-del]');
+          if (delBtn) delBtn.addEventListener('click', async () => {
+            if (!confirm('确定删除用户「' + u.username + '」？')) return;
+            try {
+              const r = await api('/api/users?username=' + encodeURIComponent(u.username), { method: 'DELETE' });
+              showToast(r.message || '已删除');
+              loadUsers();
+            } catch (e) { showToast('删除失败：' + (parseErr(e) || '')); }
+          });
+        });
+      } catch (_) {
+        status.textContent = '服务未连接';
+        box.innerHTML = '<div class="empty-state">服务未连接</div>';
+      }
+    }
+    const userModal = document.getElementById('user-modal');
+    document.getElementById('add-user-btn').addEventListener('click', () => {
+      document.getElementById('nu-name').value = '';
+      document.getElementById('nu-pwd').value = '';
+      userModal.style.display = 'flex';
+    });
+    document.getElementById('user-modal-close').addEventListener('click', () => { userModal.style.display = 'none'; });
+    document.getElementById('user-modal-cancel').addEventListener('click', () => { userModal.style.display = 'none'; });
+    document.getElementById('user-modal-submit').addEventListener('click', async () => {
+      const username = document.getElementById('nu-name').value.trim();
+      const password = document.getElementById('nu-pwd').value;
+      if (!username || password.length < 6) { showToast('用户名必填，密码至少 6 位'); return; }
+      try {
+        const r = await api('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
+        showToast(r.message || '已新增用户');
+        userModal.style.display = 'none';
+        loadUsers();
+      } catch (e) { showToast('新增失败：' + (parseErr(e) || '')); }
     });
     const COCO_NAMES = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'];
     const datasetProfiles = { 'coco8.yaml': { path:'datasets/coco8', split:'4 / 4 / -', classes:'80 类（COCO）', count:80, train:'images/train', val:'images/val', test:'', names:COCO_NAMES, download:'https://ultralytics.com/assets/coco8.zip', labels:'labels/train.cache' }, 'coco128.yaml': { path:'datasets/coco128', split:'128 / 128 / -', classes:'80 类（COCO）', count:80, train:'images/train2017', val:'images/train2017', test:'', names:COCO_NAMES, download:'https://ultralytics.com/assets/coco128.zip', labels:'labels/train.cache' }, 'traffic-object-v3.yaml': { path:'datasets/traffic-object-v3', split:'9,984 / 2,496 / -', classes:'4 类', count:4, train:'images/train', val:'images/val', test:'images/test', names:['person', 'car', 'truck', 'bus'], download:'', labels:'labels/train.cache' }, 'custom-data.yaml': { path:'', split:'请在 YAML 中配置', classes:'自定义类别', count:'', train:'', val:'', test:'', names:[], download:'', labels:'' } };

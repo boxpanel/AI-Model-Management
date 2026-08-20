@@ -71,10 +71,16 @@ class Database:
                     id TEXT PRIMARY KEY,
                     username TEXT NOT NULL UNIQUE,
                     password_hash TEXT NOT NULL,
+                    is_admin INTEGER NOT NULL DEFAULT 0,
                     created_at TEXT NOT NULL
                 );
                 """
             )
+            try:
+                # 旧库迁移：补充 is_admin 列
+                conn.execute("ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0")
+            except Exception:
+                pass
             conn.execute(
                 "INSERT OR IGNORE INTO settings(key, value) VALUES ('max_parallel_jobs', '1')"
             )
@@ -228,13 +234,13 @@ class Database:
             row = conn.execute("SELECT COUNT(*) AS c FROM users").fetchone()
             return int(row["c"])
 
-    def create_user(self, username: str, password_hash: str) -> None:
+    def create_user(self, username: str, password_hash: str, is_admin: bool = False) -> None:
         user_id = uuid.uuid4().hex[:12]
         now = _utc_now()
         with self._lock, self._connect() as conn:
             conn.execute(
-                "INSERT INTO users(id, username, password_hash, created_at) VALUES (?, ?, ?, ?)",
-                (user_id, username, password_hash, now),
+                "INSERT INTO users(id, username, password_hash, is_admin, created_at) VALUES (?, ?, ?, ?, ?)",
+                (user_id, username, password_hash, 1 if is_admin else 0, now),
             )
             conn.commit()
 
@@ -242,3 +248,14 @@ class Database:
         with self._lock, self._connect() as conn:
             conn.execute("UPDATE users SET password_hash = ? WHERE username = ?", (password_hash, username))
             conn.commit()
+
+    def get_users(self) -> list[dict[str, Any]]:
+        with self._lock, self._connect() as conn:
+            rows = conn.execute("SELECT * FROM users ORDER BY is_admin DESC, created_at ASC").fetchall()
+            return [dict(row) for row in rows]
+
+    def delete_user(self, username: str) -> bool:
+        with self._lock, self._connect() as conn:
+            cur = conn.execute("DELETE FROM users WHERE username = ?", (username,))
+            conn.commit()
+            return cur.rowcount > 0

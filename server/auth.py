@@ -58,5 +58,6 @@ def ensure_default_user(db: Any, username: str = "admin", password: str = "") ->
     if db.get_user(username):
         return ""
     pwd = password or secrets.token_urlsafe(12)
-    db.create_user(username, auth_service.hash_password(pwd))
+    # 首次安装创建的默认账号为超级管理员，不可删除、仅可修改密码
+    db.create_user(username, auth_service.hash_password(pwd), is_admin=True)
     return pwd
