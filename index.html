@@ -828,7 +828,11 @@
       const modal = document.getElementById('dir-modal');
       try {
         const res = await api('/api/fs/dirs?path=' + encodeURIComponent(path));
-        if (!res.ok) { showToast(res.error || '无法访问该目录'); return; }
+        if (!res.ok) {
+          cur.textContent = path;
+          list.innerHTML = '<div class="dir-empty">' + (res.error || '无法访问该目录') + '</div>';
+          return;
+        }
         cur.textContent = res.path;
         modal.dataset.path = res.path;
         modal.dataset.base = res.base || '';
@@ -844,7 +848,10 @@
           item.addEventListener('click', () => loadDirList(next));
           list.appendChild(item);
         });
-      } catch (_) { showToast('无法连接服务器'); }
+      } catch (_) {
+        cur.textContent = path;
+        list.innerHTML = '<div class="dir-empty">加载失败，请点击"上级目录"重试</div>';
+      }
     }
     function openDirPicker(inputId) {
       dirTargetId = inputId;

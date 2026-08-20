@@ -170,10 +170,19 @@ async def fs_dirs(path: str = "/") -> dict[str, Any]:
             return {"ok": False, "error": "路径不存在"}
         if not p.is_dir():
             p = p.parent
-        children = sorted(
-            (d.name for d in p.iterdir() if d.is_dir() and not d.name.startswith(".")),
-            key=str.lower,
-        )
+        # 若目录为空（无子目录），自动向上进入有子目录的最近目录，保证打开即可选择
+        while True:
+            try:
+                children = sorted(
+                    (d.name for d in p.iterdir() if d.is_dir() and not d.name.startswith(".")),
+                    key=str.lower,
+                )
+            except PermissionError:
+                return {"ok": False, "error": "无权限访问该目录"}
+            if children or p == p.parent:
+                break
+            p = p.parent
+            hint = (hint + "；" if hint else "") + f"目录为空，已进入上级目录 {p}"
         parent = str(p.parent) if p.parent != p else ""
         return {
             "ok": True,
