@@ -42,6 +42,7 @@ def check_cuda() -> tuple[bool, Optional[str], int]:
 
 def get_environment(name: str = "YOLOv11", active_conda_env: str = "") -> EnvironmentResponse:
     resolved_env = resolve_env_for_model(name, active_conda_env)
+    probe_reason = ""
     if resolved_env:
         python_exe = get_conda_python(resolved_env)
         if python_exe:
@@ -70,6 +71,9 @@ def get_environment(name: str = "YOLOv11", active_conda_env: str = "") -> Enviro
                     conda_env=resolved_env,
                     conda_envs=[env["name"] for env in list_conda_envs()],
                 )
+            probe_reason = str(probe.get("message", "")).strip()
+            if probe_reason:
+                probe_reason = f"；环境探测失败（{python_exe}）：{probe_reason}"
 
     ultralytics_ok = check_ultralytics()
     cuda_ok, gpu_name, gpu_count = check_cuda()
@@ -77,7 +81,9 @@ def get_environment(name: str = "YOLOv11", active_conda_env: str = "") -> Enviro
     message = "当前 Python 环境就绪，可开始训练" if ready else "未安装 ultralytics，请运行 pip install -r requirements.txt"
     if ready and not cuda_ok:
         message = "ultralytics 已就绪；未检测到 CUDA，将使用 CPU 训练"
-    if not conda_available():
+    if probe_reason:
+        message += probe_reason
+    elif not conda_available():
         message += "；未检测到 conda（训练将使用当前 Python）"
     elif not resolved_env:
         message += f"；未找到 {name} 对应 Conda 环境，使用当前 Python"
