@@ -164,9 +164,39 @@ fi
 "$VENV_PY" -m pip install --upgrade pip
 "$VENV_PY" -m pip install -r requirements-server.txt
 
+# ---------- 询问安装配置（端口 / 账号 / 密码） ----------
+ask_value() {
+  local prompt="$1" default="$2" answer=""
+  if [ -t 0 ]; then
+    read -r -p "$prompt" answer || true
+  else
+    read -r -p "$prompt" answer < /dev/tty 2>/dev/null || true
+  fi
+  [ -z "$answer" ] && answer="$default"
+  printf '%s' "$answer"
+}
+ask_secret() {
+  local prompt="$1" default="$2" answer=""
+  if [ -t 0 ]; then
+    read -r -s -p "$prompt" answer || true; echo
+  else
+    read -r -s -p "$prompt" answer < /dev/tty 2>/dev/null || true; echo
+  fi
+  [ -z "$answer" ] && answer="$default"
+  printf '%s' "$answer"
+}
+echo "------------------ 安装配置（回车使用默认值） ------------------"
+SERVER_PORT="$(ask_value "  服务端口 [8000]: " "8000")"
+case "$SERVER_PORT" in
+  ''|*[!0-9]*) SERVER_PORT="8000"; echo "  端口无效，已使用默认 8000" ;;
+esac
+ADMIN_USER="$(ask_value "  管理员账号 [admin]: " "admin")"
+ADMIN_PWD="$(ask_secret "  管理员密码（留空自动生成随机密码）: " "$(openssl rand -hex 8 2>/dev/null || head -c 8 /dev/urandom | od -An -tx1 | tr -d ' \n')")"
+[ -z "$ADMIN_PWD" ] && ADMIN_PWD="$(openssl rand -hex 8 2>/dev/null || head -c 8 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+echo "  → 端口 ${SERVER_PORT} / 账号 ${ADMIN_USER} / 密码已设置"
+echo "---------------------------------------------------------------"
+
 # ---------- 创建默认管理员账号 ----------
-ADMIN_USER="admin"
-ADMIN_PWD="$(openssl rand -hex 8 2>/dev/null || head -c 8 /dev/urandom | od -An -tx1 | tr -d ' \n')"
 echo "  - 创建默认管理员账号 ${ADMIN_USER} …"
 "$VENV_PY" "$ADMIN_USER" "$ADMIN_PWD" <<'PY'
 import sys
@@ -177,6 +207,9 @@ from server.auth import ensure_default_user
 db = Database(Path("visionlab.db"))
 ensure_default_user(db, sys.argv[1], sys.argv[2])
 PY
+# 保存服务端口，供 start.sh / stop.sh 读取
+echo "$SERVER_PORT" > "$SCRIPT_DIR/.visionlab_port"
+echo "  - 服务端口 ${SERVER_PORT}（已写入 .visionlab_port）"
 
 # ---------- 6. GPU / CUDA 环境检测 ----------
 echo "[6/6] 环境检测…"
@@ -195,12 +228,13 @@ echo " VisionLab 安装完成！"
 echo "=========================================="
 SERVER_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
 [ -z "$SERVER_IP" ] && SERVER_IP="localhost"
-echo "  页面地址:   http://${SERVER_IP}:8000"
-echo "  本机访问:   http://127.0.0.1:8000"
+echo "  页面地址:   http://${SERVER_IP}:${SERVER_PORT}"
+echo "  本机访问:   http://127.0.0.1:${SERVER_PORT}"
 echo ""
 echo "  启动服务:   ./start.sh"
+echo "  停止服务:   ./stop.sh"
+echo "  删除程序:   ./uninstall.sh"
 echo "  开发模式:   ./start.sh --dev"
-echo "  停止服务:   Ctrl+C 或 kill \$(pgrep -f uvicorn)"
 echo ""
 echo "  训练输出:   $SCRIPT_DIR/runs"
 echo "  数据集:     $SCRIPT_DIR/datasets"
@@ -210,5 +244,17 @@ echo "  登录账号:   ${ADMIN_USER}"
 echo "  登录密码:   ${ADMIN_PWD}"
 echo "  （请登录后立即在「设置」页修改密码）"
 echo "=========================================="
-echo " 如需开机自启或更多配置，请告诉我们进一步配置。"
+echo "  正在自动启动服务…"
+nohup bash "$SCRIPT_DIR/start.sh" > /tmp/visionlab-start.log 2>&1 &
+for i in $(seq 1 60); do
+  if curl -fsS "http://127.0.0.1:${SERVER_PORT}/api/health" >/dev/null 2>&1; then
+    echo "  服务已启动 ✓  页面地址: http://${SERVER_IP}:${SERVER_PORT}"
+    break
+  fi
+  sleep 1
+done
+if ! curl -fsS "http://127.0.0.1:${SERVER_PORT}/api/health" >/dev/null 2>&1; then
+  echo "  [警告] 服务暂未就绪，请稍后运行 ./start.sh 或查看 /tmp/visionlab-start.log"
+fi
+echo "  启动日志:   /tmp/visionlab-start.log"
 echo "=========================================="

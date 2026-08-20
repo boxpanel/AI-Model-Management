@@ -7,6 +7,11 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
+# 服务端口：优先读取安装时写入的 .visionlab_port，默认 8000
+PORT_FILE="$SCRIPT_DIR/.visionlab_port"
+PORT="8000"
+[ -f "$PORT_FILE" ] && PORT="$(tr -d '[:space:]' < "$PORT_FILE")"
+
 MODE="prod"
 for arg in "$@"; do
   case "$arg" in
@@ -38,8 +43,8 @@ fi
 
 if [ "$MODE" = "dev" ]; then
   echo "[开发模式] 已启用 --reload，修改代码会重启服务（正在运行的训练将被中断）。"
-  exec "$VENV_PY" -m uvicorn server.main:app --host 0.0.0.0 --port 8000 --reload
+  exec "$VENV_PY" -m uvicorn server.main:app --host 0.0.0.0 --port "$PORT" --reload
 fi
 
 echo "[生产模式] 服务不会因热重载重启，训练任务保持不中断。"
-exec "$VENV_PY" -m uvicorn server.main:app --host 0.0.0.0 --port 8000
+exec "$VENV_PY" -m uvicorn server.main:app --host 0.0.0.0 --port "$PORT"

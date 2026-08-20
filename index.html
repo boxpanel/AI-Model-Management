@@ -190,7 +190,7 @@
   </div>
   <div class="toast" id="toast" role="status"></div>
   <script>
-    const API_BASE = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
+    const API_BASE = (window.location.origin && /^https?:/.test(window.location.origin))
       ? window.location.origin
       : 'http://127.0.0.1:8000';
     let ws, uploadedWeightsPath = '', backendOnline = false, trainPoints = ['40,38'], valPoints = ['40,32'];
