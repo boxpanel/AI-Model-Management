@@ -52,13 +52,21 @@ YOLO 训练管理平台（AI Model Management）：基于 Web 的可视化 YOLO 
 在服务器上执行**一条命令**即可完成下载源码 + 安装全部依赖 + 启动服务：
 
 ```bash
-git clone https://github.com/boxpanel/AI-Model-Management.git && cd AI-Model-Management && bash install.sh && ./start.sh
+curl -fsSL https://raw.githubusercontent.com/boxpanel/AI-Model-Management/main/install.sh | bash && ./start.sh
 ```
 
-只想安装不启动，或已启动过需要重装，用：
+该命令自动处理：首次安装会克隆仓库到 `~/AI-Model-Management`；若目录已存在则自动 `git pull` 更新（**不会因目录已存在而报错**）。
+
+只想安装不启动，或已启动过需要重装：
 
 ```bash
-git clone https://github.com/boxpanel/AI-Model-Management.git && cd AI-Model-Management && bash install.sh
+curl -fsSL https://raw.githubusercontent.com/boxpanel/AI-Model-Management/main/install.sh | bash
+```
+
+手动方式（已在服务器上克隆过仓库）：
+
+```bash
+cd AI-Model-Management && git pull && bash install.sh && ./start.sh
 ```
 
 `install.sh` 会自动完成：

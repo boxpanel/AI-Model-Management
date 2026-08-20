@@ -1,13 +1,30 @@
 #!/usr/bin/env bash
 # ============================================================
 # VisionLab 一键安装脚本：安装程序所需的全部依赖与工具
-# 用法：
-#   ./install.sh              安装全部（系统工具 + Python 依赖 + RKNN 转换依赖）
-#   ./install.sh --skip-rknn  跳过 rknn-toolkit2 安装
-#   ./install.sh --no-sudo    不使用 sudo（跳过系统级依赖，仅安装 Python 依赖）
+# 支持两种执行方式：
+#   1. 远程一键（推荐）：curl -fsSL <raw-url> | bash
+#      - 自动克隆/更新仓库到 ~/AI-Model-Management（目录已存在时自动 git pull，不会报错）
+#   2. 仓库内执行：bash install.sh [--skip-rknn] [--no-sudo]
 # ============================================================
 set -e
-cd "$(dirname "$0")"
+
+# ---------- 自引导：在仓库外执行时，先获取/更新仓库代码 ----------
+SCRIPT_PATH="${BASH_SOURCE[0]:-$0}"
+SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" 2>/dev/null && pwd || pwd)"
+if [ ! -f "$SCRIPT_DIR/requirements.txt" ]; then
+  REPO_DIR="${VISIONLAB_DIR:-$HOME/AI-Model-Management}"
+  if [ -d "$REPO_DIR/.git" ]; then
+    echo "[引导] 检测到已存在的仓库 $REPO_DIR，正在拉取最新代码…"
+    git -C "$REPO_DIR" pull --ff-only
+  else
+    echo "[引导] 正在克隆仓库到 $REPO_DIR …"
+    mkdir -p "$(dirname "$REPO_DIR")"
+    git clone https://github.com/boxpanel/AI-Model-Management.git "$REPO_DIR"
+  fi
+  echo "[引导] 继续执行安装…"
+  exec bash "$REPO_DIR/install.sh" "$@"
+fi
+cd "$SCRIPT_DIR"
 
 SKIP_RKNN=0
 NO_SUDO=0
