@@ -138,16 +138,14 @@
           </div>
           <div class="actions"><button class="btn primary" id="save-settings" type="button">保存设置</button></div>
         </section>
-        <section class="card" style="margin-top:22px">
-          <h2>账号安全</h2>
+        <section class="card" style="margin-top:22px" id="user-mgmt-card">
+          <h2>我的账号</h2>
           <div class="form-grid">
             <div><label for="old-password">原密码</label><input id="old-password" type="password" autocomplete="current-password" /></div>
             <div><label for="new-password">新密码（至少 6 位）</label><input id="new-password" type="password" autocomplete="new-password" /></div>
           </div>
           <div class="actions"><button class="btn primary" id="change-password-btn" type="button">修改密码</button><button class="btn" id="logout-btn" type="button">退出登录</button></div>
-        </section>
-        <section class="card" style="margin-top:22px;display:none" id="user-mgmt-card">
-          <div class="list-head"><h2>用户管理</h2><span class="text-small" id="user-list-status"></span><button class="btn primary" id="add-user-btn" type="button">+ 新增用户</button></div>
+          <div class="list-head" id="user-mgmt-admin" style="margin-top:22px;display:none"><h2>用户管理</h2><span class="text-small" id="user-list-status"></span><button class="btn primary" id="add-user-btn" type="button">+ 新增用户</button></div>
           <div id="user-list" class="list-grid"></div>
         </section>
       </section>
@@ -975,8 +973,11 @@
     });
     // ---------- 用户管理（仅超级管理员） ----------
     function showUserMgmt() {
+      // 卡片对所有登录用户可见（我的账号：改密/退出），用户管理区块仅超级管理员可见
       const card = document.getElementById('user-mgmt-card');
-      card.style.display = currentUserIsAdmin ? '' : 'none';
+      card.style.display = '';
+      const admin = document.getElementById('user-mgmt-admin');
+      admin.style.display = currentUserIsAdmin ? '' : 'none';
       if (currentUserIsAdmin) loadUsers();
     }
     async function loadUsers() {
