@@ -848,8 +848,12 @@
     }
     function openDirPicker(inputId) {
       dirTargetId = inputId;
+      const modal = document.getElementById('dir-modal');
+      // 立即显示选择界面，目录列表异步加载
+      document.getElementById('dir-current').textContent = '加载中…';
+      document.getElementById('dir-list').innerHTML = '<div class="dir-empty">加载中…</div>';
+      modal.style.display = 'flex';
       loadDirList(composeDsBrowsePath(inputId));
-      document.getElementById('dir-modal').style.display = 'flex';
     }
     document.querySelectorAll('.path-pick').forEach(btn => {
       btn.addEventListener('click', () => openDirPicker(btn.dataset.target));
