@@ -10,7 +10,7 @@ cd "$SCRIPT_DIR"
 # 服务端口：优先读取安装时写入的 .visionlab_port，默认 80
 PORT_FILE="$SCRIPT_DIR/.visionlab_port"
 PORT="80"
-[ -f "$PORT_FILE" ] && PORT="$(tr -d '[:space:]' < "$PORT_FILE")"
+if [ -f "$PORT_FILE" ]; then PORT="$(tr -d '[:space:]' < "$PORT_FILE")"; fi
 
 MODE="prod"
 for arg in "$@"; do

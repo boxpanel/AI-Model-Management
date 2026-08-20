@@ -173,26 +173,26 @@ ask_value() {
   printf '%s' "$prompt"
   ASK_VALUE=""
   if [ -t 0 ]; then
-    read -r -t 60 ASK_VALUE || true
+    read -r ASK_VALUE || true
   elif [ -e /dev/tty ]; then
-    read -r -t 60 ASK_VALUE < /dev/tty 2>/dev/null || true
+    read -r ASK_VALUE < /dev/tty 2>/dev/null || true
   else
     echo "  （检测不到交互终端，使用默认值）"
   fi
-  [ -z "$ASK_VALUE" ] && ASK_VALUE="$default"
+  if [ -z "$ASK_VALUE" ]; then ASK_VALUE="$default"; fi
 }
 ask_secret() {
   local prompt="$1" default="$2"
   printf '%s' "$prompt"
   ASK_VALUE=""
   if [ -t 0 ]; then
-    read -r -s -t 60 ASK_VALUE || true; echo
+    read -r -s ASK_VALUE || true; echo
   elif [ -e /dev/tty ]; then
-    read -r -s -t 60 ASK_VALUE < /dev/tty 2>/dev/null || true; echo
+    read -r -s ASK_VALUE < /dev/tty 2>/dev/null || true; echo
   else
     echo "  （检测不到交互终端，自动生成随机密码）"
   fi
-  [ -z "$ASK_VALUE" ] && ASK_VALUE="$default"
+  if [ -z "$ASK_VALUE" ]; then ASK_VALUE="$default"; fi
 }
 echo "------------------ 安装配置（回车使用默认值） ------------------"
 ask_value "  服务端口 [80]: " "80"
@@ -212,7 +212,8 @@ echo "---------------------------------------------------------------"
 
 # ---------- 创建默认管理员账号 ----------
 echo "  - 创建默认管理员账号 ${ADMIN_USER} …"
-"$VENV_PY" "$ADMIN_USER" "$ADMIN_PWD" <<'PY'
+# 用 -c 传代码（heredoc 在 curl|bash 管道下会从 stdin 读取，与管道脚本冲突导致脚本提前退出）
+"$VENV_PY" -c '
 import sys
 sys.path.insert(0, ".")
 from pathlib import Path
@@ -220,7 +221,8 @@ from server.database import Database
 from server.auth import ensure_default_user
 db = Database(Path("visionlab.db"))
 ensure_default_user(db, sys.argv[1], sys.argv[2])
-PY
+' "$ADMIN_USER" "$ADMIN_PWD"
+echo "  - 管理员账号就绪"
 # 保存服务端口，供 start.sh / stop.sh 读取
 echo "$SERVER_PORT" > "$SCRIPT_DIR/.visionlab_port"
 echo "  - 服务端口 ${SERVER_PORT}（已写入 .visionlab_port）"
@@ -241,7 +243,7 @@ echo "=========================================="
 echo " VisionLab 安装完成！"
 echo "=========================================="
 SERVER_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
-[ -z "$SERVER_IP" ] && SERVER_IP="localhost"
+if [ -z "$SERVER_IP" ]; then SERVER_IP="localhost"; fi
 echo "  页面地址:   http://${SERVER_IP}:${SERVER_PORT}"
 echo "  本机访问:   http://127.0.0.1:${SERVER_PORT}"
 echo ""
