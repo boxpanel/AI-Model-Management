@@ -166,7 +166,8 @@ async def dataset_create(payload: DatasetCreateRequest) -> dict[str, Any]:
             class_names=payload.class_names,
             test_path=payload.test_path,
             download_url=payload.download_url,
-            extra_yaml=payload.extra_yaml,
+            kpt_shape=payload.kpt_shape,
+            flip_idx=payload.flip_idx,
         )
         return {"ok": True, **result}
     except Exception as exc:
@@ -185,7 +186,8 @@ async def dataset_update(payload: DatasetCreateRequest) -> dict[str, Any]:
             class_names=payload.class_names,
             test_path=payload.test_path,
             download_url=payload.download_url,
-            extra_yaml=payload.extra_yaml,
+            kpt_shape=payload.kpt_shape,
+            flip_idx=payload.flip_idx,
         )
         return {"ok": True, **result}
     except Exception as exc:

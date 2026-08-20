@@ -9,7 +9,7 @@ import yaml
 from .database import Database
 
 # 数据集 YAML 的标准键（ultralytics 官方），其余键作为高级参数保留
-_STANDARD_KEYS = {"path", "train", "val", "test", "names", "nc", "download"}
+_STANDARD_KEYS = {"path", "train", "val", "test", "names", "nc", "download", "kpt_shape", "flip_idx"}
 
 BUILTIN_DATASETS = [
     {
@@ -102,6 +102,8 @@ class DatasetService:
                 entry["test"] = info.get("test")
                 entry["names"] = info.get("class_names")
                 entry["download"] = info.get("download")
+                entry["kpt_shape"] = info.get("kpt_shape", "")
+                entry["flip_idx"] = info.get("flip_idx", "")
                 entry["extra_yaml"] = extra_yaml
             else:
                 items.append(
@@ -117,6 +119,8 @@ class DatasetService:
                         "test": info.get("test", ""),
                         "names": info.get("class_names", []),
                         "download": info.get("download", ""),
+                        "kpt_shape": info.get("kpt_shape", ""),
+                        "flip_idx": info.get("flip_idx", ""),
                         "extra_yaml": extra_yaml,
                     }
                 )
@@ -147,6 +151,8 @@ class DatasetService:
                 "class_count": data.get("nc", 0),
                 "class_names": names,
                 "download": data.get("download", ""),
+                "kpt_shape": ",".join(str(x) for x in data.get("kpt_shape") or []),
+                "flip_idx": ",".join(str(x) for x in data.get("flip_idx") or []),
                 "extra": extra,
             }
         except Exception:
@@ -162,7 +168,8 @@ class DatasetService:
         class_names: list[str] | None = None,
         test_path: str = "",
         download_url: str = "",
-        extra_yaml: str = "",
+        kpt_shape: str = "",
+        flip_idx: str = "",
     ) -> dict[str, str]:
         if not name.endswith(".yaml"):
             name = f"{name}.yaml"
@@ -184,14 +191,10 @@ class DatasetService:
             payload["test"] = test_path
         if download_url:
             payload["download"] = download_url
-        if extra_yaml:
-            try:
-                extra = yaml.safe_load(extra_yaml) or {}
-            except Exception as exc:
-                raise ValueError(f"高级参数 YAML 格式错误：{exc}") from exc
-            if not isinstance(extra, dict):
-                raise ValueError("高级参数必须是键值对（如 kpt_shape: [17, 3]）")
-            payload.update(extra)
+        if kpt_shape.strip():
+            payload["kpt_shape"] = [int(x) for x in kpt_shape.replace("，", ",").split(",") if x.strip()]
+        if flip_idx.strip():
+            payload["flip_idx"] = [int(x) for x in flip_idx.replace("，", ",").split(",") if x.strip()]
         target.write_text(yaml.safe_dump(payload, allow_unicode=True, sort_keys=False), encoding="utf-8")
         rel = str(target.relative_to(self.base_dir.resolve())).replace("\\", "/")
         self.db.register_dataset(name=name, yaml_path=rel, root_path=root_path, class_count=class_count)
