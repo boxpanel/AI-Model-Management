@@ -7,7 +7,7 @@ import zipfile
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, File, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, File, Header, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 
@@ -83,7 +83,7 @@ async def logout(payload: dict[str, str] | None = None) -> dict[str, Any]:
 
 
 @app.get("/api/auth/me")
-async def auth_me(authorization: str | None = None) -> dict[str, Any]:
+async def auth_me(authorization: str | None = Header(default=None)) -> dict[str, Any]:
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="未登录")
     username = auth_service.validate_token(authorization[7:].strip())
@@ -94,7 +94,7 @@ async def auth_me(authorization: str | None = None) -> dict[str, Any]:
 
 
 @app.post("/api/change-password")
-async def change_password(payload: dict[str, str], authorization: str | None = None) -> dict[str, Any]:
+async def change_password(payload: dict[str, str], authorization: str | None = Header(default=None)) -> dict[str, Any]:
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="未登录")
     username = auth_service.validate_token(authorization[7:].strip())
@@ -123,7 +123,7 @@ def _current_user(authorization: str | None) -> dict[str, Any] | None:
 
 # ---------- 用户管理（仅超级管理员） ----------
 @app.get("/api/users")
-async def users_list(authorization: str | None = None) -> dict[str, Any]:
+async def users_list(authorization: str | None = Header(default=None)) -> dict[str, Any]:
     user = _current_user(authorization)
     if not user:
         raise HTTPException(status_code=401, detail="未登录")
@@ -143,7 +143,7 @@ async def users_list(authorization: str | None = None) -> dict[str, Any]:
 
 
 @app.post("/api/users")
-async def user_create(payload: dict[str, str], authorization: str | None = None) -> dict[str, Any]:
+async def user_create(payload: dict[str, str], authorization: str | None = Header(default=None)) -> dict[str, Any]:
     user = _current_user(authorization)
     if not user:
         raise HTTPException(status_code=401, detail="未登录")
@@ -160,7 +160,7 @@ async def user_create(payload: dict[str, str], authorization: str | None = None)
 
 
 @app.put("/api/users")
-async def user_update(payload: dict[str, str], authorization: str | None = None) -> dict[str, Any]:
+async def user_update(payload: dict[str, str], authorization: str | None = Header(default=None)) -> dict[str, Any]:
     user = _current_user(authorization)
     if not user:
         raise HTTPException(status_code=401, detail="未登录")
@@ -178,7 +178,7 @@ async def user_update(payload: dict[str, str], authorization: str | None = None)
 
 
 @app.delete("/api/users")
-async def user_delete(username: str, authorization: str | None = None) -> dict[str, Any]:
+async def user_delete(username: str, authorization: str | None = Header(default=None)) -> dict[str, Any]:
     user = _current_user(authorization)
     if not user:
         raise HTTPException(status_code=401, detail="未登录")

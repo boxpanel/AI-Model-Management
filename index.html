@@ -1012,9 +1012,10 @@
             } catch (err) { showToast('删除失败：' + (parseErr(err) || '')); }
           });
         });
-      } catch (_) {
-        status.textContent = '服务未连接';
-        tbody.innerHTML = '<tr><td colspan="4" class="dir-empty">服务未连接</td></tr>';
+      } catch (err) {
+        const msg = parseErr(err) || '服务未连接';
+        status.textContent = msg;
+        tbody.innerHTML = '<tr><td colspan="4" class="dir-empty">' + msg + '</td></tr>';
       }
     }
     const pwdModal = document.getElementById('user-pwd-modal');
