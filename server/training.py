@@ -148,6 +148,23 @@ class TrainingManager:
     # ------------------------------------------------------------------ #
     # 启动 / 停止
     # ------------------------------------------------------------------ #
+    def _resolve_worker_python(self, model_version: str) -> str:
+        """优先使用对应模型的 Conda 环境 Python；未找到时回退到当前解释器（venv）。"""
+        try:
+            from .conda_env import get_conda_python, resolve_env_for_model
+
+            active = ""
+            if self._db is not None:
+                active = self._db.get_setting("active_conda_env", "")
+            env_name = resolve_env_for_model(model_version, active)
+            if env_name:
+                python_exe = get_conda_python(env_name)
+                if python_exe:
+                    return python_exe
+        except Exception:
+            pass
+        return sys.executable
+
     def start(self, config: TrainingStartRequest) -> None:
         if self.is_running():
             raise RuntimeError("已有训练任务正在运行")
@@ -159,7 +176,7 @@ class TrainingManager:
         try:
             proc = subprocess.Popen(
                 [
-                    sys.executable,
+                    self._resolve_worker_python(config.model_version),
                     "-m",
                     "server.train_worker",
                     "--config",

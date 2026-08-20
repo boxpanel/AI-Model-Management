@@ -22,6 +22,7 @@ if ! command -v python3 &>/dev/null; then
 fi
 
 # 优先使用项目虚拟环境（避免 Ubuntu 24.04+ 的 PEP 668 限制）
+# 注意：Web 服务运行在 venv；训练/转换子进程使用对应模型的 Conda 环境（见 server/training.py）
 VENV_PY="$SCRIPT_DIR/venv/bin/python"
 if [ ! -x "$VENV_PY" ]; then
   echo "未找到虚拟环境，正在创建并安装依赖…"
@@ -30,21 +31,9 @@ if [ ! -x "$VENV_PY" ]; then
     exit 1
   }
   "$VENV_PY" -m pip install --upgrade pip
-  "$VENV_PY" -m pip install -r requirements.txt
+  "$VENV_PY" -m pip install -r requirements-server.txt
 else
-  "$VENV_PY" -m pip install -r requirements.txt
-fi
-
-# 可选依赖：rknn-toolkit2（RKNN 转换需要，瑞芯微 NPU 格式）
-# 仅支持 Linux（x86_64/aarch64）且 Python 3.8-3.12；安装失败不影响其他功能。
-if ! "$VENV_PY" -c "from rknn.api import RKNN" &>/dev/null; then
-  echo "[可选] 正在安装 rknn-toolkit2（RKNN 模型转换需要）…"
-  if "$VENV_PY" -m pip install "rknn-toolkit2>=2.3.2"; then
-    echo "[可选] rknn-toolkit2 安装成功"
-  else
-    echo "[警告] rknn-toolkit2 安装失败：RKNN 转换功能不可用（不影响训练与其他转换格式）"
-    echo "        如需 RKNN 转换，请确认系统为 Linux x86_64/aarch64 且 Python 版本为 3.8-3.12"
-  fi
+  "$VENV_PY" -m pip install -r requirements-server.txt
 fi
 
 if [ "$MODE" = "dev" ]; then

@@ -29,6 +29,20 @@ class ConvertManager:
     def _state_path(self, job_id: str) -> Path:
         return self.converted_dir / f"{job_id}.json"
 
+    def _resolve_python(self) -> str:
+        """转换子进程优先使用默认 Conda 环境（YOLOv11）的 Python；未找到时回退当前解释器。"""
+        try:
+            from .conda_env import get_conda_python, resolve_env_for_model
+
+            env_name = resolve_env_for_model("YOLOv11")
+            if env_name:
+                python_exe = get_conda_python(env_name)
+                if python_exe:
+                    return python_exe
+        except Exception:
+            pass
+        return sys.executable
+
     def start(self, req: ConvertStartRequest) -> dict[str, Any]:
         job_id = datetime.now().strftime("%Y%m%d%H%M%S") + "-" + str(int(time.time() * 1000))[-4:]
         config_path = self.converted_dir / f"{job_id}.config.json"
@@ -43,7 +57,7 @@ class ConvertManager:
         try:
             proc = subprocess.Popen(
                 [
-                    sys.executable,
+                    self._resolve_python(),
                     "-m",
                     "server.convert_worker",
                     "--config",

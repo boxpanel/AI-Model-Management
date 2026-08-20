@@ -29,9 +29,10 @@ YOLO 训练管理平台（AI Model Management）：基于 Web 的可视化 YOLO 
 ```
 .
 ├── index.html          # 单页前端（无框架，离线降级模式）
-├── install.sh          # 一键安装脚本（系统依赖 + Python 依赖 + RKNN 工具链）
+├── install.sh          # 一键安装脚本（Miniconda + 训练 Conda 环境 + Web 服务依赖）
 ├── start.sh            # 启动脚本（./start.sh 生产 / ./start.sh --dev 开发）
-├── requirements.txt    # Python 依赖
+├── requirements.txt    # 训练依赖（安装在 Conda 训练环境中）
+├── requirements-server.txt  # Web 服务依赖（安装在 venv 中）
 └── server/             # FastAPI 后端
     ├── main.py         # API 与 WebSocket
     ├── training.py     # 训练管理器（子进程 + 状态轮询）
@@ -55,7 +56,10 @@ YOLO 训练管理平台（AI Model Management）：基于 Web 的可视化 YOLO 
 curl -fsSL https://raw.githubusercontent.com/boxpanel/AI-Model-Management/main/install.sh | bash && ./start.sh
 ```
 
-该命令自动处理：首次安装会克隆仓库到 `~/AI-Model-Management`；若目录已存在则自动 `git pull` 更新（**不会因目录已存在而报错**）。所有 Python 依赖安装在项目内 `venv/` 虚拟环境中（兼容 Ubuntu 24.04 的 PEP 668 限制）。
+该命令自动处理：首次安装会克隆仓库到 `~/AI-Model-Management`；若目录已存在则自动 `git pull` 更新（**不会因目录已存在而报错**）。安装内容：
+- **Miniconda**（系统无 conda 时自动安装）
+- **训练 Conda 环境** YOLOv11 / YOLOv8 / YOLOv5（各 Python 3.11，自动安装全部训练依赖与 rknn-toolkit2）—— 训练/转换子进程按模型版本使用对应 Conda 环境
+- **Web 服务依赖**安装到项目内 `venv/`（兼容 Ubuntu 24.04 的 PEP 668 限制）
 
 只想安装不启动，或已启动过需要重装：
 

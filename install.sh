@@ -5,6 +5,12 @@
 #   1. 远程一键（推荐）：curl -fsSL <raw-url> | bash
 #      - 自动克隆/更新仓库到 ~/AI-Model-Management（目录已存在时自动 git pull，不会报错）
 #   2. 仓库内执行：bash install.sh [--skip-rknn] [--no-sudo]
+#
+# 安装内容：
+#   - Web 服务依赖 → 项目 venv 虚拟环境（requirements-server.txt）
+#   - Miniconda（系统无 conda 时自动安装）
+#   - 训练 Conda 环境 YOLOv11 / YOLOv8 / YOLOv5（各自安装 requirements.txt，Python 3.11）
+#   - rknn-toolkit2 → 各训练 Conda 环境（可选）
 # ============================================================
 set -e
 
@@ -47,7 +53,7 @@ if ! command -v python3 &>/dev/null; then
   echo "  CentOS/RHEL:   sudo dnf install -y python3 python3-pip"
   exit 1
 fi
-echo "[1/5] Python: $(python3 --version)（架构 $(uname -m)）"
+echo "[1/6] Python: $(python3 --version)（架构 $(uname -m)）"
 
 # ---------- 2. 安装系统级依赖（工具库） ----------
 # apt 包名在不同 Ubuntu 版本有差异（如 24.04 移除 libgl1-mesa-glx，改为 libgl1），
@@ -67,7 +73,7 @@ install_apt_pkgs() {
 }
 if [ "$NO_SUDO" = "0" ]; then
   if command -v apt-get &>/dev/null; then
-    echo "[2/5] 安装系统依赖（apt）…"
+    echo "[2/6] 安装系统依赖（apt）…"
     sudo apt-get update
     install_apt_pkgs \
       python3-dev python3-pip python3-venv \
@@ -75,22 +81,75 @@ if [ "$NO_SUDO" = "0" ]; then
       libglib2.0-0 libglib2.0-0t64 libsm6 libgl1 \
       libprotobuf-dev gcc g++ curl wget git
   elif command -v dnf &>/dev/null; then
-    echo "[2/5] 安装系统依赖（dnf）…"
+    echo "[2/6] 安装系统依赖（dnf）…"
     sudo dnf install -y \
       python3-devel python3-pip \
       libxslt-devel zlib-devel glib2-devel \
       libSM libXext libXrender mesa-libGL \
       protobuf-devel gcc gcc-c++ curl wget git
   else
-    echo "[2/5][警告] 未识别的包管理器，请手动安装系统依赖"
+    echo "[2/6][警告] 未识别的包管理器，请手动安装系统依赖"
   fi
 else
-  echo "[2/5] 已跳过系统依赖安装（--no-sudo）"
+  echo "[2/6] 已跳过系统依赖安装（--no-sudo）"
 fi
 
-# ---------- 3. 创建虚拟环境并安装 Python 依赖 ----------
+# ---------- 3. 安装 Miniconda（系统无 conda 时） ----------
+CONDA_BIN="$(command -v conda || true)"
+if [ -z "$CONDA_BIN" ]; then
+  MINICONDA_DIR="$HOME/miniconda3"
+  if [ ! -x "$MINICONDA_DIR/bin/conda" ]; then
+    echo "[3/6] 未检测到 conda，正在安装 Miniconda 到 $MINICONDA_DIR …"
+    ARCH="$(uname -m)"
+    if [ "$ARCH" = "x86_64" ]; then
+      INSTALLER="Miniconda3-latest-Linux-x86_64.sh"
+    elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
+      INSTALLER="Miniconda3-latest-Linux-aarch64.sh"
+    else
+      echo "[3/6][警告] 不支持的架构 $ARCH，跳过 Miniconda 安装（训练将使用 venv）"
+      INSTALLER=""
+    fi
+    if [ -n "$INSTALLER" ]; then
+      curl -fsSL "https://repo.anaconda.com/miniconda/$INSTALLER" -o /tmp/miniconda.sh
+      bash /tmp/miniconda.sh -b -p "$MINICONDA_DIR"
+      rm -f /tmp/miniconda.sh
+      CONDA_BIN="$MINICONDA_DIR/bin/conda"
+    fi
+  else
+    CONDA_BIN="$MINICONDA_DIR/bin/conda"
+  fi
+fi
+if [ -n "$CONDA_BIN" ]; then
+  echo "[3/6] conda: $("$CONDA_BIN" --version 2>/dev/null || echo '已安装')"
+else
+  echo "[3/6][警告] conda 不可用，训练环境将回退到 venv"
+fi
+
+# ---------- 4. 创建并配置训练 Conda 环境 ----------
+MODEL_ENVS=("YOLOv11" "YOLOv8" "YOLOv5")
+echo "[4/6] 创建训练 Conda 环境（${MODEL_ENVS[*]}，Python 3.11）…"
+for ENV_NAME in "${MODEL_ENVS[@]}"; do
+  if [ -z "$CONDA_BIN" ]; then
+    break
+  fi
+  if ! "$CONDA_BIN" env list | awk '{print $1}' | grep -qx "$ENV_NAME"; then
+    echo "  - 创建环境 $ENV_NAME …"
+    "$CONDA_BIN" create -y -n "$ENV_NAME" python=3.11
+  else
+    echo "  - 环境 $ENV_NAME 已存在"
+  fi
+  echo "  - 安装依赖到 $ENV_NAME …"
+  "$CONDA_BIN" run -n "$ENV_NAME" python -m pip install --upgrade pip
+  "$CONDA_BIN" run -n "$ENV_NAME" python -m pip install -r requirements.txt
+  if [ "$SKIP_RKNN" = "0" ]; then
+    "$CONDA_BIN" run -n "$ENV_NAME" python -m pip install "rknn-toolkit2>=2.3.2" \
+      || echo "  [警告] $ENV_NAME 环境 rknn-toolkit2 安装失败（RKNN 转换不可用，不影响训练）"
+  fi
+done
+
+# ---------- 5. Web 服务虚拟环境（venv） ----------
 # 使用 venv 避免 Ubuntu 24.04+（PEP 668）禁止系统级 pip 安装的问题
-echo "[3/5] 创建虚拟环境并安装 Python 依赖…"
+echo "[5/6] 创建 Web 服务虚拟环境并安装服务依赖…"
 VENV_PY="$SCRIPT_DIR/venv/bin/python"
 if [ ! -x "$VENV_PY" ]; then
   python3 -m venv "$SCRIPT_DIR/venv" || {
@@ -99,24 +158,10 @@ if [ ! -x "$VENV_PY" ]; then
   }
 fi
 "$VENV_PY" -m pip install --upgrade pip
-"$VENV_PY" -m pip install -r requirements.txt
+"$VENV_PY" -m pip install -r requirements-server.txt
 
-# ---------- 4. RKNN 转换依赖（可选） ----------
-if [ "$SKIP_RKNN" = "1" ]; then
-  echo "[4/5] 已跳过 rknn-toolkit2（--skip-rknn）"
-elif "$VENV_PY" -c "from rknn.api import RKNN" &>/dev/null; then
-  echo "[4/5] rknn-toolkit2 已安装"
-else
-  echo "[4/5] 安装 rknn-toolkit2（RKNN 转换需要，仅 Linux x86_64/aarch64 + Python 3.8-3.12）…"
-  if "$VENV_PY" -m pip install "rknn-toolkit2>=2.3.2"; then
-    echo "[4/5] rknn-toolkit2 安装成功"
-  else
-    echo "[4/5][警告] rknn-toolkit2 安装失败：RKNN 转换不可用（不影响训练与其他转换格式）"
-  fi
-fi
-
-# ---------- 5. GPU / CUDA 环境检测 ----------
-echo "[5/5] 环境检测…"
+# ---------- 6. GPU / CUDA 环境检测 ----------
+echo "[6/6] 环境检测…"
 if command -v nvidia-smi &>/dev/null && nvidia-smi &>/dev/null; then
   echo "  NVIDIA 驱动: 已检测到（GPU 训练可用）"
   nvidia-smi --query-gpu=name,memory.total --format=csv,noheader 2>/dev/null | head -n 8 | sed 's/^/    /'
