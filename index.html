@@ -9,7 +9,7 @@
     * { box-sizing:border-box; }
     body { margin:0; background:var(--bg); color:var(--ink); font-family:"Microsoft YaHei", "PingFang SC", system-ui, sans-serif; }
     .app { min-height:100vh; display:grid; grid-template-columns:244px 1fr; }
-    aside { background:#111c34; color:#d7e0f5; padding:28px 16px; }
+    aside { background:#111c34; color:#d7e0f5; padding:28px 16px; display:flex; flex-direction:column; }
     .brand { display:flex; align-items:center; gap:10px; padding:0 10px 32px; font-weight:700; font-size:18px; color:#fff; }
     .brand-mark { width:30px; height:30px; border-radius:9px; display:grid; place-items:center; background:linear-gradient(135deg,#5d89ff,#3762e8); font-size:14px; }
     .side-label { padding:0 12px 10px; color:#7080a1; font-size:12px; letter-spacing:.08em; }
@@ -18,6 +18,7 @@
     .nav-item.active { color:#fff; background:#26385d; }
     .nav-icon { display:flex; width:20px; height:20px; align-items:center; justify-content:center; color:#7d8caa; flex:none; }
     .nav-item.active .nav-icon { color:#8fb0ff; }
+    .aside-footer { margin-top:auto; padding-top:18px; }.aside-logout { width:100%; padding:10px 0; border:1px solid rgba(255,255,255,.16); border-radius:9px; background:transparent; color:#c9d6ef; font-size:13px; cursor:pointer; transition:.15s; }.aside-logout:hover { border-color:#e26d76; color:#fff; background:rgba(226,109,118,.15); }
     .help { margin-top:42px; padding:14px; border:1px solid #2d3e62; border-radius:10px; font-size:12px; line-height:1.7; color:#99a9c5; }
     main { padding:34px clamp(20px,4vw,62px) 46px; max-width:1440px; width:100%; margin:auto; }
     header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:30px; }.header-actions { display:flex; gap:10px; align-items:center; }
@@ -74,6 +75,7 @@
       <div class="nav-item" data-view="environment"><span class="nav-icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M1 9h3M1 15h3M20 9h3M20 15h3"/></svg></span>运行环境</div>
       <div class="nav-item" data-view="settings"><span class="nav-icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>设置</div>
       <div class="help">需要帮助？<br>权重文件支持 YOLO 系列的 <b>.pt</b> 格式。<br>启动命令：<code>./start.sh</code></div>
+      <div class="aside-footer"><button id="sidebar-logout-btn" class="aside-logout" type="button">退出登录</button></div>
     </aside>
     <main>
       <div class="view active" data-view="train">
@@ -144,7 +146,7 @@
             <div><label for="old-password">原密码</label><input id="old-password" type="password" autocomplete="current-password" /></div>
             <div><label for="new-password">新密码（至少 6 位）</label><input id="new-password" type="password" autocomplete="new-password" /></div>
           </div>
-          <div class="actions"><button class="btn primary" id="change-password-btn" type="button">修改密码</button><button class="btn" id="logout-btn" type="button">退出登录</button></div>
+          <div class="actions"><button class="btn primary" id="change-password-btn" type="button">修改密码</button></div>
           <div class="list-head" id="user-mgmt-admin" style="margin-top:22px;display:none"><h2>用户管理</h2><span class="text-small" id="user-list-status"></span><button class="btn primary" id="add-user-btn" type="button">+ 新增用户</button></div>
           <div id="user-list" class="list-grid"></div>
         </section>
@@ -967,7 +969,7 @@
         document.getElementById('new-password').value = '';
       } catch (e) { showToast('修改失败：' + (parseErr(e) || '')); }
     });
-    document.getElementById('logout-btn').addEventListener('click', () => {
+    document.getElementById('sidebar-logout-btn').addEventListener('click', () => {
       api('/api/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: authToken }), _skip401: true }).catch(() => {});
       logout();
     });
