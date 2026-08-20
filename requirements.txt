@@ -1,0 +1,12 @@
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+python-multipart>=0.0.9
+pydantic>=2.8.0
+psutil>=5.9.0
+pyyaml>=6.0
+ultralytics>=8.3.0
+torch>=2.0.0
+nvidia-ml-py>=12.535.0
+# RKNN 转换依赖（瑞芯微 NPU 模型格式 .rknn）：rknn-toolkit2 由 start.sh 单独安装。
+# 注意：rknn-toolkit2 仅支持 Linux（x86_64/aarch64）且 Python 3.8-3.12，
+# 故不放入本文件，避免在不受支持的环境导致整体安装失败。

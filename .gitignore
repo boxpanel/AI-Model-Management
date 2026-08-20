@@ -1,0 +1,8 @@
+uploads/
+runs/
+__pycache__/
+*.pyc
+.venv/
+venv/
+state/
+visionlab.db
