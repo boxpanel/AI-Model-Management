@@ -160,8 +160,12 @@ async def fs_dirs(path: str = "") -> dict[str, Any]:
             p = Path(path).expanduser()
             if not p.is_absolute():
                 p = (BASE_DIR / p).resolve()
+        orig = str(p)
+        # 路径不存在时向上定位到最近存在的祖先目录，避免停在系统根目录
+        while not p.exists() and p != p.parent:
+            p = p.parent
         if not p.exists():
-            return {"ok": False, "error": f"路径不存在：{p}"}
+            return {"ok": False, "error": f"路径不存在：{orig}"}
         if not p.is_dir():
             p = p.parent
         children = sorted(
@@ -169,7 +173,10 @@ async def fs_dirs(path: str = "") -> dict[str, Any]:
             key=str.lower,
         )
         parent = str(p.parent) if p.parent != p else ""
-        return {"ok": True, "path": str(p), "parent": parent, "dirs": children}
+        result: dict[str, Any] = {"ok": True, "path": str(p), "parent": parent, "dirs": children}
+        if orig != str(p):
+            result["not_found"] = orig
+        return result
     except PermissionError:
         return {"ok": False, "error": "无权限访问该目录"}
     except Exception as exc:

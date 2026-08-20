@@ -819,6 +819,7 @@
       try {
         const res = await api('/api/fs/dirs?path=' + encodeURIComponent(path));
         if (!res.ok) { showToast(res.error || '无法访问该目录'); return; }
+        if (res.not_found) showToast('路径不存在，已定位到最近目录：' + res.path);
         cur.textContent = res.path;
         modal.dataset.path = res.path;
         document.getElementById('dir-up').style.display = res.parent ? '' : 'none';
@@ -837,8 +838,13 @@
     function openDirPicker(inputId) {
       dirTargetId = inputId;
       const input = document.getElementById(inputId);
-      // 以输入框当前值为起点（空值由后端默认打开项目根目录）
-      loadDirList((input.value || '').trim());
+      let val = (input.value || '').trim();
+      // 训练/验证/测试路径通常相对"数据根目录"，组合后作为浏览起点
+      if (inputId !== 'ds-root' && val && !val.startsWith('/')) {
+        const root = document.getElementById('ds-root').value.trim();
+        if (root) val = root.replace(/\/+$/, '') + '/' + val;
+      }
+      loadDirList(val);
       document.getElementById('dir-modal').style.display = 'flex';
     }
     document.querySelectorAll('.path-pick').forEach(btn => {
