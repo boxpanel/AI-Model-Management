@@ -88,19 +88,27 @@ else
   echo "[2/5] 已跳过系统依赖安装（--no-sudo）"
 fi
 
-# ---------- 3. 安装 Python 依赖 ----------
-echo "[3/5] 安装 Python 依赖（requirements.txt）…"
-python3 -m pip install --upgrade pip
-python3 -m pip install -r requirements.txt
+# ---------- 3. 创建虚拟环境并安装 Python 依赖 ----------
+# 使用 venv 避免 Ubuntu 24.04+（PEP 668）禁止系统级 pip 安装的问题
+echo "[3/5] 创建虚拟环境并安装 Python 依赖…"
+VENV_PY="$SCRIPT_DIR/venv/bin/python"
+if [ ! -x "$VENV_PY" ]; then
+  python3 -m venv "$SCRIPT_DIR/venv" || {
+    echo "[错误] 创建虚拟环境失败，请确认已安装 python3-venv：sudo apt install -y python3-venv"
+    exit 1
+  }
+fi
+"$VENV_PY" -m pip install --upgrade pip
+"$VENV_PY" -m pip install -r requirements.txt
 
 # ---------- 4. RKNN 转换依赖（可选） ----------
 if [ "$SKIP_RKNN" = "1" ]; then
   echo "[4/5] 已跳过 rknn-toolkit2（--skip-rknn）"
-elif python3 -c "from rknn.api import RKNN" &>/dev/null; then
+elif "$VENV_PY" -c "from rknn.api import RKNN" &>/dev/null; then
   echo "[4/5] rknn-toolkit2 已安装"
 else
   echo "[4/5] 安装 rknn-toolkit2（RKNN 转换需要，仅 Linux x86_64/aarch64 + Python 3.8-3.12）…"
-  if python3 -m pip install "rknn-toolkit2>=2.3.2"; then
+  if "$VENV_PY" -m pip install "rknn-toolkit2>=2.3.2"; then
     echo "[4/5] rknn-toolkit2 安装成功"
   else
     echo "[4/5][警告] rknn-toolkit2 安装失败：RKNN 转换不可用（不影响训练与其他转换格式）"

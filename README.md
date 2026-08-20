@@ -55,7 +55,7 @@ YOLO 训练管理平台（AI Model Management）：基于 Web 的可视化 YOLO 
 curl -fsSL https://raw.githubusercontent.com/boxpanel/AI-Model-Management/main/install.sh | bash && ./start.sh
 ```
 
-该命令自动处理：首次安装会克隆仓库到 `~/AI-Model-Management`；若目录已存在则自动 `git pull` 更新（**不会因目录已存在而报错**）。
+该命令自动处理：首次安装会克隆仓库到 `~/AI-Model-Management`；若目录已存在则自动 `git pull` 更新（**不会因目录已存在而报错**）。所有 Python 依赖安装在项目内 `venv/` 虚拟环境中（兼容 Ubuntu 24.04 的 PEP 668 限制）。
 
 只想安装不启动，或已启动过需要重装：
 
