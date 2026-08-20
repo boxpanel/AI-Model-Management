@@ -81,6 +81,12 @@ class Database:
                 conn.execute("ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0")
             except Exception:
                 pass
+            # 兼容旧库：若没有任何超级管理员，将最早创建的用户设为超级管理员
+            row = conn.execute("SELECT COUNT(*) AS c FROM users WHERE is_admin = 1").fetchone()
+            if row and int(row["c"]) == 0:
+                conn.execute(
+                    "UPDATE users SET is_admin = 1 WHERE id = (SELECT id FROM users ORDER BY created_at ASC LIMIT 1)"
+                )
             conn.execute(
                 "INSERT OR IGNORE INTO settings(key, value) VALUES ('max_parallel_jobs', '1')"
             )
