@@ -1161,8 +1161,9 @@
         statusEl.textContent = '转换中，请稍候…（后台运行，可关闭窗口）';
         document.getElementById('convert-cancel').textContent = '取消转换';
         convertTimer = setInterval(() => pollConvert(result.job_id), 2500);
-      } catch (_) {
-        statusEl.textContent = '服务未连接，无法启动转换';
+      } catch (e) {
+        const msg = parseErr(e);
+        statusEl.textContent = msg ? ('启动失败：' + msg) : '服务未连接，无法启动转换';
         submitBtn.disabled = false;
       }
     }
