@@ -33,13 +33,30 @@ fi
 echo "[1/5] Python: $(python3 --version)（架构 $(uname -m)）"
 
 # ---------- 2. 安装系统级依赖（工具库） ----------
+# apt 包名在不同 Ubuntu 版本有差异（如 24.04 移除 libgl1-mesa-glx，改为 libgl1），
+# 安装前逐个检查候选，不可用的包自动跳过，避免整体安装失败。
+install_apt_pkgs() {
+  local pkgs=()
+  for pkg in "$@"; do
+    if apt-cache show "$pkg" >/dev/null 2>&1; then
+      pkgs+=("$pkg")
+    else
+      echo "  [跳过] 当前系统无可用包：$pkg"
+    fi
+  done
+  if [ "${#pkgs[@]}" -gt 0 ]; then
+    sudo apt-get install -y "${pkgs[@]}"
+  fi
+}
 if [ "$NO_SUDO" = "0" ]; then
   if command -v apt-get &>/dev/null; then
     echo "[2/5] 安装系统依赖（apt）…"
     sudo apt-get update
-    sudo apt-get install -y \
+    install_apt_pkgs \
       python3-dev python3-pip python3-venv \
-      libxslt1-dev zlib1g zlib1g-dev libglib2.0-0 libsm6 libgl1-mesa-glx \
+      libxslt1-dev libxslt1.1-dev zlib1g zlib1g-dev \
+      libglib2.0-0 libglib2.0-0t64 libsm6 \
+      libgl1 libgl1-mesa-glx \
       libprotobuf-dev gcc g++ curl wget git
   elif command -v dnf &>/dev/null; then
     echo "[2/5] 安装系统依赖（dnf）…"
