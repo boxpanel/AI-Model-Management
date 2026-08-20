@@ -77,7 +77,9 @@ def get_environment(name: str = "YOLOv11", active_conda_env: str = "") -> Enviro
     message = "当前 Python 环境就绪，可开始训练" if ready else "未安装 ultralytics，请运行 pip install -r requirements.txt"
     if ready and not cuda_ok:
         message = "ultralytics 已就绪；未检测到 CUDA，将使用 CPU 训练"
-    if conda_available() and not resolved_env:
+    if not conda_available():
+        message += "；未检测到 conda（训练将使用当前 Python）"
+    elif not resolved_env:
         message += f"；未找到 {name} 对应 Conda 环境，使用当前 Python"
     return EnvironmentResponse(
         name=name,
