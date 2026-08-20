@@ -92,8 +92,8 @@
             <div><label for="class-count">类别数量</label><input id="class-count" type="number" value="80" min="1" /></div>
             <div class="full"><label>数据增强</label><div class="switch-row" style="margin-top:0;padding-top:0;border:0"><div><h2 style="font-size:14px">启用默认数据增强</h2><p>Mosaic、翻转和颜色空间增强将按模型预设执行。</p></div><input class="toggle" id="augmentation" type="checkbox" checked /></div></div>
             <div class="full"><label>训练运行环境</label><div class="detect-note">系统会为所选模型自动配置并激活 <code id="training-env-name">YOLOv11</code> Conda 环境。</div></div>
+            <div class="full"><div class="switch-row" style="margin-top:0;padding-top:0;border:0"><div><h2 style="font-size:14px">从权重继续训练</h2><p>保留优化器状态和已完成的训练轮次。</p></div><input class="toggle" id="resume" type="checkbox" checked /></div></div>
           </div>
-          <div class="switch-row"><div><h2 style="font-size:14px">从权重继续训练</h2><p>保留优化器状态和已完成的训练轮次。</p></div><input class="toggle" id="resume" type="checkbox" checked /></div>
         </section>
         <div>
           <section class="card side-card"><h2>训练参数</h2><p class="hint">推荐参数已根据所选模型预设。</p>
