@@ -812,6 +812,16 @@
     document.getElementById('ds-cancel').addEventListener('click', () => { dsModal.style.display = 'none'; });
     // ---------- 路径选择器（数据根目录/训练/验证/测试路径） ----------
     let dirTargetId = '';
+    // 训练/验证/测试路径与数据根目录组合为浏览起点；相对路径交给后端按项目根解析
+    function composeDsBrowsePath(inputId) {
+      if (inputId === 'ds-root') return document.getElementById('ds-root').value.trim() || '/';
+      const root = document.getElementById('ds-root').value.trim();
+      const sub = document.getElementById(inputId).value.trim();
+      if (!root) return sub || '/';
+      if (!sub) return root;
+      if (sub.startsWith('/')) return sub;
+      return root.replace(/\/+$/, '') + '/' + sub;
+    }
     async function loadDirList(path) {
       const cur = document.getElementById('dir-current');
       const list = document.getElementById('dir-list');
@@ -819,9 +829,10 @@
       try {
         const res = await api('/api/fs/dirs?path=' + encodeURIComponent(path));
         if (!res.ok) { showToast(res.error || '无法访问该目录'); return; }
-        if (res.not_found) showToast('路径不存在，已定位到最近目录：' + res.path);
         cur.textContent = res.path;
         modal.dataset.path = res.path;
+        modal.dataset.base = res.base || '';
+        if (res.hint) showToast(res.hint);
         document.getElementById('dir-up').style.display = res.parent ? '' : 'none';
         list.innerHTML = '';
         if (!res.dirs.length) { list.innerHTML = '<div class="dir-empty">（无子目录）</div>'; return; }
@@ -837,14 +848,7 @@
     }
     function openDirPicker(inputId) {
       dirTargetId = inputId;
-      const input = document.getElementById(inputId);
-      let val = (input.value || '').trim();
-      // 训练/验证/测试路径通常相对"数据根目录"，组合后作为浏览起点
-      if (inputId !== 'ds-root' && val && !val.startsWith('/')) {
-        const root = document.getElementById('ds-root').value.trim();
-        if (root) val = root.replace(/\/+$/, '') + '/' + val;
-      }
-      loadDirList(val);
+      loadDirList(composeDsBrowsePath(inputId));
       document.getElementById('dir-modal').style.display = 'flex';
     }
     document.querySelectorAll('.path-pick').forEach(btn => {
@@ -858,9 +862,17 @@
       loadDirList(idx <= 0 ? '/' : p.slice(0, idx));
     });
     document.getElementById('dir-confirm').addEventListener('click', () => {
-      const path = document.getElementById('dir-modal').dataset.path || '/';
-      if (dirTargetId) document.getElementById(dirTargetId).value = path;
-      document.getElementById('dir-modal').style.display = 'none';
+      const modal = document.getElementById('dir-modal');
+      const path = modal.dataset.path || '/';
+      const base = modal.dataset.base || '';
+      const input = document.getElementById(dirTargetId);
+      let value = path;
+      // 训练/验证/测试路径：浏览目录在项目根内时写回相对路径（与数据根目录保持相对）
+      if (dirTargetId !== 'ds-root' && base && path.startsWith(base)) {
+        value = path.slice(base.length).replace(/^\/+/, '');
+      }
+      input.value = value;
+      modal.style.display = 'none';
     });
     document.getElementById('ds-submit').addEventListener('click', async () => {
       const payload = {

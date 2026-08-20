@@ -150,22 +150,24 @@ async def hardware() -> dict[str, Any]:
 
 
 @app.get("/api/fs/dirs")
-async def fs_dirs(path: str = "") -> dict[str, Any]:
-    """列出服务器目录下的子目录，供页面"路径选择"使用（仅目录，跳过隐藏项）。
-    空路径默认打开项目根目录；相对路径基于项目根目录解析。"""
+async def fs_dirs(path: str = "/") -> dict[str, Any]:
+    """列出服务器目录下的子目录，供页面"路径选择"使用。
+    相对路径基于项目根目录解析；路径不存在时自动向上定位到最近存在的目录。
+    """
     try:
-        if not path.strip():
-            p = BASE_DIR
-        else:
-            p = Path(path).expanduser()
-            if not p.is_absolute():
-                p = (BASE_DIR / p).resolve()
-        orig = str(p)
-        # 路径不存在时向上定位到最近存在的祖先目录，避免停在系统根目录
-        while not p.exists() and p != p.parent:
-            p = p.parent
+        p = Path(path).expanduser()
+        if not p.is_absolute():
+            p = (BASE_DIR / p).resolve()
+        hint = ""
         if not p.exists():
-            return {"ok": False, "error": f"路径不存在：{orig}"}
+            cur = p
+            while cur != cur.parent and not cur.exists():
+                cur = cur.parent
+            if cur != p:
+                hint = f"路径不存在，已定位到最近目录：{cur}"
+                p = cur
+        if not p.exists():
+            return {"ok": False, "error": "路径不存在"}
         if not p.is_dir():
             p = p.parent
         children = sorted(
@@ -173,10 +175,14 @@ async def fs_dirs(path: str = "") -> dict[str, Any]:
             key=str.lower,
         )
         parent = str(p.parent) if p.parent != p else ""
-        result: dict[str, Any] = {"ok": True, "path": str(p), "parent": parent, "dirs": children}
-        if orig != str(p):
-            result["not_found"] = orig
-        return result
+        return {
+            "ok": True,
+            "path": str(p),
+            "parent": parent,
+            "base": str(BASE_DIR),
+            "dirs": children,
+            "hint": hint,
+        }
     except PermissionError:
         return {"ok": False, "error": "无权限访问该目录"}
     except Exception as exc:
