@@ -737,7 +737,7 @@
           ? gpuModels.join('、')
           : (env.gpu_count ? env.gpu_count + ' 张' : '0 张');
         document.getElementById('env-conda').textContent = env.conda_env || (env.conda_available ? '已检测到 Conda（未匹配模型环境）' : '未检测到 Conda');
-        document.getElementById('env-ready').textContent = env.message || (env.ready ? '就绪' : '未就绪');
+        document.getElementById('env-ready').textContent = env.ready ? '已就绪' : '未就绪';
       } catch (_) {
         document.getElementById('env-python').textContent = '离线（服务未启动）';
         document.getElementById('env-ultralytics').textContent = '—';
