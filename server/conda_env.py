@@ -110,12 +110,16 @@ def probe_env(python_executable: str) -> dict[str, Any]:
     script = (
         "import json, sys\n"
         "data = {'python_version': '.'.join(map(str, sys.version_info[:3])), "
-        "'ultralytics_available': False, 'cuda_available': False, 'gpu_name': None, 'gpu_count': 0}\n"
+        "'ultralytics_available': False, 'cuda_available': False, 'cuda_version': None, "
+        "'gpu_name': None, 'gpu_names': [], 'gpu_count': 0}\n"
         "try:\n import ultralytics\n data['ultralytics_available'] = True\n"
         "except ImportError:\n pass\n"
         "try:\n import torch\n data['cuda_available'] = torch.cuda.is_available()\n"
-        " if data['cuda_available']:\n  data['gpu_name'] = torch.cuda.get_device_name(0)\n"
+        " if data['cuda_available']:\n"
+        "  data['cuda_version'] = torch.version.cuda\n"
         "  data['gpu_count'] = torch.cuda.device_count()\n"
+        "  data['gpu_names'] = [torch.cuda.get_device_name(i) for i in range(data['gpu_count'])]\n"
+        "  data['gpu_name'] = data['gpu_names'][0] if data['gpu_names'] else None\n"
         "except Exception:\n pass\n"
         "print(json.dumps(data))"
     )

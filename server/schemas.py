@@ -60,7 +60,9 @@ class EnvironmentResponse(BaseModel):
     python_version: str
     ultralytics_available: bool
     cuda_available: bool
+    cuda_version: str = ""
     gpu_name: Optional[str] = None
+    gpu_names: list[str] = Field(default_factory=list)
     gpu_count: int = 0
     message: str = ""
     conda_available: bool = False

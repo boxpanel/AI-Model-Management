@@ -52,6 +52,9 @@ def get_environment(name: str = "YOLOv11", active_conda_env: str = "") -> Enviro
                 cuda_ok = bool(probe.get("cuda_available"))
                 gpu_name = probe.get("gpu_name")
                 gpu_count = int(probe.get("gpu_count", 0))
+                gpu_names = list(probe.get("gpu_names") or ())
+                if not gpu_names and gpu_name:
+                    gpu_names = [gpu_name]
                 ready = ultralytics_ok
                 message = f"Conda 环境 {resolved_env} 已就绪"
                 if ready and not cuda_ok:
@@ -64,7 +67,9 @@ def get_environment(name: str = "YOLOv11", active_conda_env: str = "") -> Enviro
                     python_version=str(probe.get("python_version", "")),
                     ultralytics_available=ultralytics_ok,
                     cuda_available=cuda_ok,
+                    cuda_version=str(probe.get("cuda_version") or ""),
                     gpu_name=gpu_name,
+                    gpu_names=gpu_names,
                     gpu_count=gpu_count,
                     message=message,
                     conda_available=conda_available(),
@@ -93,7 +98,9 @@ def get_environment(name: str = "YOLOv11", active_conda_env: str = "") -> Enviro
         python_version=f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
         ultralytics_available=ultralytics_ok,
         cuda_available=cuda_ok,
+        cuda_version="",
         gpu_name=gpu_name,
+        gpu_names=[gpu_name] if gpu_name else [],
         gpu_count=gpu_count,
         message=message,
         conda_available=conda_available(),

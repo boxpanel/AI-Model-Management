@@ -125,7 +125,7 @@
       </section>
       <section class="view" data-view="environment">
         <header><div><h1>运行环境</h1><p class="subtitle">训练服务运行时依赖与硬件环境检测结果。</p></div><button class="btn" id="refresh-env-btn" type="button">重新检测</button></header>
-        <section class="card"><div class="env-grid"><div class="env-item"><span>Python 版本</span><b id="env-python">--</b></div><div class="env-item"><span>Ultralytics</span><b id="env-ultralytics">--</b></div><div class="env-item"><span>CUDA 可用</span><b id="env-cuda">--</b></div><div class="env-item"><span>GPU 数量</span><b id="env-gpu-count">--</b></div><div class="env-item"><span>Conda 环境</span><b id="env-conda">--</b></div><div class="env-item"><span>环境状态</span><b id="env-ready">--</b></div></div></section>
+        <section class="card"><div class="env-grid"><div class="env-item"><span>Python 版本</span><b id="env-python">--</b></div><div class="env-item"><span>Ultralytics</span><b id="env-ultralytics">--</b></div><div class="env-item"><span>CUDA 版本</span><b id="env-cuda">--</b></div><div class="env-item"><span>GPU 型号</span><b id="env-gpu-count">--</b></div><div class="env-item"><span>Conda 环境</span><b id="env-conda">--</b></div><div class="env-item"><span>环境状态</span><b id="env-ready">--</b></div></div></section>
       </section>
       <section class="view" data-view="settings">
         <header><div><h1>设置</h1><p class="subtitle">全局偏好与训练默认参数配置。</p></div></header>
@@ -731,8 +731,11 @@
         const env = await api('/api/environment?model=' + encodeURIComponent(document.getElementById('model').value));
         document.getElementById('env-python').textContent = env.python_version || '—';
         document.getElementById('env-ultralytics').textContent = env.ultralytics_available ? '已安装' : '未安装';
-        document.getElementById('env-cuda').textContent = env.cuda_available ? '可用' : '不可用';
-        document.getElementById('env-gpu-count').textContent = env.gpu_count ? env.gpu_count + ' 张' : '0 张';
+        document.getElementById('env-cuda').textContent = env.cuda_version ? 'CUDA ' + env.cuda_version : (env.cuda_available ? '可用' : '不可用');
+        const gpuModels = (env.gpu_names && env.gpu_names.length) ? env.gpu_names : [];
+        document.getElementById('env-gpu-count').textContent = gpuModels.length
+          ? gpuModels.join('、')
+          : (env.gpu_count ? env.gpu_count + ' 张' : '0 张');
         document.getElementById('env-conda').textContent = env.conda_env || (env.conda_available ? '已检测到 Conda（未匹配模型环境）' : '未检测到 Conda');
         document.getElementById('env-ready').textContent = env.message || (env.ready ? '就绪' : '未就绪');
       } catch (_) {
