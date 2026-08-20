@@ -165,34 +165,45 @@ fi
 "$VENV_PY" -m pip install -r requirements-server.txt
 
 # ---------- 询问安装配置（端口 / 账号 / 密码） ----------
+# 提示用 printf 输出（read -p 在 curl|bash 管道下不显示提示）；
+# 优先从 /dev/tty 读取（管道执行时 stdin 不可交互）；60 秒无输入则用默认值；
+# 检测不到交互终端时直接使用默认值，保证安装不会中断。
 ask_value() {
-  local prompt="$1" default="$2" answer=""
+  local prompt="$1" default="$2"
+  printf '%s' "$prompt"
+  ASK_VALUE=""
   if [ -t 0 ]; then
-    read -r -p "$prompt" answer || true
+    read -r -t 60 ASK_VALUE || true
+  elif [ -e /dev/tty ]; then
+    read -r -t 60 ASK_VALUE < /dev/tty 2>/dev/null || true
   else
-    read -r -p "$prompt" answer < /dev/tty 2>/dev/null || true
+    echo "  （检测不到交互终端，使用默认值）"
   fi
-  [ -z "$answer" ] && answer="$default"
-  printf '%s' "$answer"
+  [ -z "$ASK_VALUE" ] && ASK_VALUE="$default"
 }
 ask_secret() {
-  local prompt="$1" default="$2" answer=""
+  local prompt="$1" default="$2"
+  printf '%s' "$prompt"
+  ASK_VALUE=""
   if [ -t 0 ]; then
-    read -r -s -p "$prompt" answer || true; echo
+    read -r -s -t 60 ASK_VALUE || true; echo
+  elif [ -e /dev/tty ]; then
+    read -r -s -t 60 ASK_VALUE < /dev/tty 2>/dev/null || true; echo
   else
-    read -r -s -p "$prompt" answer < /dev/tty 2>/dev/null || true; echo
+    echo "  （检测不到交互终端，自动生成随机密码）"
   fi
-  [ -z "$answer" ] && answer="$default"
-  printf '%s' "$answer"
+  [ -z "$ASK_VALUE" ] && ASK_VALUE="$default"
 }
 echo "------------------ 安装配置（回车使用默认值） ------------------"
-SERVER_PORT="$(ask_value "  服务端口 [8000]: " "8000")"
+ask_value "  服务端口 [8000]: " "8000"
+SERVER_PORT="$ASK_VALUE"
 case "$SERVER_PORT" in
   ''|*[!0-9]*) SERVER_PORT="8000"; echo "  端口无效，已使用默认 8000" ;;
 esac
-ADMIN_USER="$(ask_value "  管理员账号 [admin]: " "admin")"
-ADMIN_PWD="$(ask_secret "  管理员密码（留空自动生成随机密码）: " "$(openssl rand -hex 8 2>/dev/null || head -c 8 /dev/urandom | od -An -tx1 | tr -d ' \n')")"
-[ -z "$ADMIN_PWD" ] && ADMIN_PWD="$(openssl rand -hex 8 2>/dev/null || head -c 8 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+ask_value "  管理员账号 [admin]: " "admin"
+ADMIN_USER="$ASK_VALUE"
+ask_secret "  管理员密码（留空自动生成随机密码）: " "$(openssl rand -hex 8 2>/dev/null || head -c 8 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+ADMIN_PWD="$ASK_VALUE"
 echo "  → 端口 ${SERVER_PORT} / 账号 ${ADMIN_USER} / 密码已设置"
 echo "---------------------------------------------------------------"
 
