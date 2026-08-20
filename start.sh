@@ -7,9 +7,9 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# 服务端口：优先读取安装时写入的 .visionlab_port，默认 8000
+# 服务端口：优先读取安装时写入的 .visionlab_port，默认 80
 PORT_FILE="$SCRIPT_DIR/.visionlab_port"
-PORT="8000"
+PORT="80"
 [ -f "$PORT_FILE" ] && PORT="$(tr -d '[:space:]' < "$PORT_FILE")"
 
 MODE="prod"

@@ -195,16 +195,19 @@ ask_secret() {
   [ -z "$ASK_VALUE" ] && ASK_VALUE="$default"
 }
 echo "------------------ 安装配置（回车使用默认值） ------------------"
-ask_value "  服务端口 [8000]: " "8000"
+ask_value "  服务端口 [80]: " "80"
 SERVER_PORT="$ASK_VALUE"
 case "$SERVER_PORT" in
-  ''|*[!0-9]*) SERVER_PORT="8000"; echo "  端口无效，已使用默认 8000" ;;
+  ''|*[!0-9]*) SERVER_PORT="80"; echo "  端口无效，已使用默认 80" ;;
 esac
 ask_value "  管理员账号 [admin]: " "admin"
 ADMIN_USER="$ASK_VALUE"
 ask_secret "  管理员密码（留空自动生成随机密码）: " "$(openssl rand -hex 8 2>/dev/null || head -c 8 /dev/urandom | od -An -tx1 | tr -d ' \n')"
 ADMIN_PWD="$ASK_VALUE"
 echo "  → 端口 ${SERVER_PORT} / 账号 ${ADMIN_USER} / 密码已设置"
+if [ "$SERVER_PORT" -lt 1024 ]; then
+  echo "  [提示] 端口 ${SERVER_PORT} 低于 1024，服务需以 root 身份运行（建议：sudo ./start.sh）"
+fi
 echo "---------------------------------------------------------------"
 
 # ---------- 创建默认管理员账号 ----------

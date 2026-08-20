@@ -4,7 +4,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 PORT_FILE="$SCRIPT_DIR/.visionlab_port"
-PORT="8000"
+PORT="80"
 [ -f "$PORT_FILE" ] && PORT="$(tr -d '[:space:]' < "$PORT_FILE")"
 
 PIDS="$(pgrep -f 'uvicorn server.main:app' || true)"
