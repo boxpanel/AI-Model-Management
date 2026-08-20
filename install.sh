@@ -121,6 +121,9 @@ if [ -z "$CONDA_BIN" ]; then
 fi
 if [ -n "$CONDA_BIN" ]; then
   echo "[3/6] conda: $("$CONDA_BIN" --version 2>/dev/null || echo '已安装')"
+  # 接受 Anaconda 默认渠道的服务条款（2025 年起访问 repo.anaconda.com 需接受）
+  "$CONDA_BIN" tos accept --override-channels --channel "https://repo.anaconda.com/pkgs/main" >/dev/null 2>&1 || true
+  "$CONDA_BIN" tos accept --override-channels --channel "https://repo.anaconda.com/pkgs/r" >/dev/null 2>&1 || true
 else
   echo "[3/6][警告] conda 不可用，训练环境将回退到 venv"
 fi
@@ -134,7 +137,8 @@ for ENV_NAME in "${MODEL_ENVS[@]}"; do
   fi
   if ! "$CONDA_BIN" env list | awk '{print $1}' | grep -qx "$ENV_NAME"; then
     echo "  - 创建环境 $ENV_NAME …"
-    "$CONDA_BIN" create -y -n "$ENV_NAME" python=3.11
+    # 使用 conda-forge 渠道（--override-channels 忽略默认渠道），避免 Anaconda ToS 限制
+    "$CONDA_BIN" create -y -n "$ENV_NAME" --override-channels -c conda-forge python=3.11
   else
     echo "  - 环境 $ENV_NAME 已存在"
   fi
