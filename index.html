@@ -55,6 +55,8 @@
     .btn-link.danger { color:#bd4c55; border-color:#f0ccd0; }.btn-link.danger:hover { background:#fff6f6; }.task-detail { display:grid; grid-template-columns:1fr 1fr; gap:10px; }.detail-row { border:1px solid var(--line); border-radius:8px; padding:10px 12px; }.detail-row span { display:block; color:var(--muted); font-size:11px; margin-bottom:4px; }.detail-row b { font-size:13px; font-weight:600; color:#43516a; word-break:break-all; }
     .convert-formats { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }.format-chip { display:flex; flex-direction:column; gap:4px; padding:13px 14px; border:1.5px solid #dce2ed; border-radius:10px; cursor:pointer; transition:.15s; }.format-chip.on { border-color:var(--brand); background:var(--brand-soft); }.format-chip input { display:none; }.format-chip b { font-size:14px; color:#43516a; }.format-chip span { font-size:11px; color:var(--muted); }.convert-status { margin-top:16px; min-height:18px; color:var(--brand); font-size:13px; }
     .login-mask { position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#0f172a,#1e2a4a); }.login-box { width:min(360px,90vw); background:#fff; border-radius:16px; padding:38px 34px; box-shadow:0 24px 60px rgba(0,0,0,.35); text-align:center; }.login-box h1 { font-size:26px; margin:0 0 4px; }.login-box p { color:var(--muted); font-size:13px; margin:0 0 26px; }.login-box input { width:100%; height:44px; margin-bottom:13px; padding:0 14px; border:1px solid #dce2ed; border-radius:9px; font:inherit; font-size:14px; outline:none; }.login-box input:focus { border-color:var(--brand); }.login-box .btn { width:100%; height:44px; font-size:15px; }.login-error { min-height:18px; color:#bd4c55; font-size:12px; margin-bottom:8px; }
+    .path-input { display:flex; gap:8px; align-items:center; }.path-input input { flex:1; min-width:0; }.path-pick { flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; border:1px solid #dce2ed; border-radius:9px; background:#fff; cursor:pointer; color:#5b6b8c; transition:.15s; padding:0; }.path-pick:hover { border-color:var(--brand); color:var(--brand); background:var(--brand-soft); }
+    .dir-current { font-size:13px; color:#43516a; background:#f4f7fc; border:1px solid var(--line); border-radius:9px; padding:10px 12px; margin-bottom:12px; word-break:break-all; }.dir-list { max-height:42vh; overflow:auto; border:1px solid var(--line); border-radius:9px; }.dir-item { display:flex; align-items:center; gap:8px; padding:10px 12px; cursor:pointer; font-size:13px; color:#43516a; border-bottom:1px solid #eef2f9; }.dir-item:last-child { border-bottom:0; }.dir-item:hover { background:var(--brand-soft); }.dir-empty { padding:20px; text-align:center; color:var(--muted); font-size:13px; }
     @media (max-width:820px) { .app{grid-template-columns:1fr} aside{display:none} main{padding:26px 18px}.grid{grid-template-columns:1fr} header{margin-bottom:22px}.dashboard-status-bar{justify-content:flex-start}.hardware-title{align-items:flex-start}.dataset-values{grid-template-columns:repeat(2,1fr)}.metrics{grid-template-columns:repeat(2,1fr)}.gauges{grid-template-columns:1fr} }
     @media (max-width:460px) { .form-grid{grid-template-columns:1fr}.card{padding:19px}.full{grid-column:auto} h1{font-size:22px} }
   </style>
@@ -152,10 +154,10 @@
       <div class="modal-head"><h2 id="ds-modal-title">新建数据集</h2><button class="modal-close" id="dataset-modal-close" type="button">×</button></div>
       <div class="form-grid">
         <div><label for="ds-name">名称（.yaml）</label><input id="ds-name" type="text" placeholder="my-dataset.yaml" /></div>
-        <div><label for="ds-root">数据根目录（path）</label><input id="ds-root" type="text" placeholder="datasets/my-dataset" /></div>
-        <div><label for="ds-train">训练集路径</label><input id="ds-train" type="text" value="images/train" /></div>
-        <div><label for="ds-val">验证集路径</label><input id="ds-val" type="text" value="images/val" /></div>
-        <div><label for="ds-test">测试集路径</label><input id="ds-test" type="text" placeholder="可选" /></div>
+        <div><label for="ds-root">数据根目录（path）</label><div class="path-input"><input id="ds-root" type="text" placeholder="datasets/my-dataset" /><button class="path-pick" data-target="ds-root" type="button" title="选择目录">📁</button></div></div>
+        <div><label for="ds-train">训练集路径</label><div class="path-input"><input id="ds-train" type="text" value="images/train" /><button class="path-pick" data-target="ds-train" type="button" title="选择目录">📁</button></div></div>
+        <div><label for="ds-val">验证集路径</label><div class="path-input"><input id="ds-val" type="text" value="images/val" /><button class="path-pick" data-target="ds-val" type="button" title="选择目录">📁</button></div></div>
+        <div><label for="ds-test">测试集路径</label><div class="path-input"><input id="ds-test" type="text" placeholder="可选" /><button class="path-pick" data-target="ds-test" type="button" title="选择目录">📁</button></div></div>
         <div><label for="ds-nc">类别数量</label><input id="ds-nc" type="number" value="1" min="1" /></div>
         <div class="full"><label for="ds-names">类别名称（逗号分隔）</label><input id="ds-names" type="text" placeholder="person, car, bus" /></div>
         <div class="full"><label for="ds-download">下载地址</label><input id="ds-download" type="text" placeholder="可选" /></div>
@@ -178,6 +180,14 @@
       <div class="convert-formats" id="convert-formats"></div>
       <div class="convert-status" id="convert-status"></div>
       <div class="actions"><button class="btn" id="convert-cancel" type="button">取消</button><button class="btn primary" id="convert-submit" type="button">开始转换</button></div>
+    </div>
+  </div>
+  <div class="modal-mask" id="dir-modal" style="display:none">
+    <div class="modal">
+      <div class="modal-head"><h2>选择目录</h2><button class="modal-close" id="dir-modal-close" type="button">×</button></div>
+      <div class="dir-current" id="dir-current">/</div>
+      <div class="dir-list" id="dir-list"></div>
+      <div class="actions"><button class="btn" id="dir-up" type="button">上级目录</button><button class="btn primary" id="dir-confirm" type="button">选择当前目录</button></div>
     </div>
   </div>
   <div class="login-mask" id="login-mask" style="display:none">
@@ -800,6 +810,52 @@
     document.getElementById('open-dataset-modal').addEventListener('click', () => openDatasetModal('create'));
     document.getElementById('dataset-modal-close').addEventListener('click', () => { dsModal.style.display = 'none'; });
     document.getElementById('ds-cancel').addEventListener('click', () => { dsModal.style.display = 'none'; });
+    // ---------- 路径选择器（数据根目录/训练/验证/测试路径） ----------
+    let dirTargetId = '';
+    async function loadDirList(path) {
+      const cur = document.getElementById('dir-current');
+      const list = document.getElementById('dir-list');
+      const modal = document.getElementById('dir-modal');
+      try {
+        const res = await api('/api/fs/dirs?path=' + encodeURIComponent(path));
+        if (!res.ok) { showToast(res.error || '无法访问该目录'); return; }
+        cur.textContent = res.path;
+        modal.dataset.path = res.path;
+        document.getElementById('dir-up').style.display = res.parent ? '' : 'none';
+        list.innerHTML = '';
+        if (!res.dirs.length) { list.innerHTML = '<div class="dir-empty">（无子目录）</div>'; return; }
+        res.dirs.forEach(name => {
+          const item = document.createElement('div');
+          item.className = 'dir-item';
+          item.innerHTML = '<span style="opacity:.7">📁</span> ' + name;
+          const next = res.path === '/' ? '/' + name : res.path.replace(/\/+$/, '') + '/' + name;
+          item.addEventListener('click', () => loadDirList(next));
+          list.appendChild(item);
+        });
+      } catch (_) { showToast('无法连接服务器'); }
+    }
+    function openDirPicker(inputId) {
+      dirTargetId = inputId;
+      const input = document.getElementById(inputId);
+      const start = (input.value || '').trim() || '/';
+      loadDirList(start);
+      document.getElementById('dir-modal').style.display = 'flex';
+    }
+    document.querySelectorAll('.path-pick').forEach(btn => {
+      btn.addEventListener('click', () => openDirPicker(btn.dataset.target));
+    });
+    document.getElementById('dir-modal-close').addEventListener('click', () => { document.getElementById('dir-modal').style.display = 'none'; });
+    document.getElementById('dir-up').addEventListener('click', () => {
+      const cur = document.getElementById('dir-modal').dataset.path || '/';
+      const p = cur.replace(/\/+$/, '');
+      const idx = p.lastIndexOf('/');
+      loadDirList(idx <= 0 ? '/' : p.slice(0, idx));
+    });
+    document.getElementById('dir-confirm').addEventListener('click', () => {
+      const path = document.getElementById('dir-modal').dataset.path || '/';
+      if (dirTargetId) document.getElementById(dirTargetId).value = path;
+      document.getElementById('dir-modal').style.display = 'none';
+    });
     document.getElementById('ds-submit').addEventListener('click', async () => {
       const payload = {
         name: document.getElementById('ds-name').value.trim() || 'my-dataset.yaml',

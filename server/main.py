@@ -149,6 +149,27 @@ async def hardware() -> dict[str, Any]:
     return get_hardware_metrics()
 
 
+@app.get("/api/fs/dirs")
+async def fs_dirs(path: str = "/") -> dict[str, Any]:
+    """列出服务器目录下的子目录，供页面"路径选择"使用（仅目录，跳过隐藏项）。"""
+    try:
+        p = Path(path).expanduser()
+        if not p.exists():
+            return {"ok": False, "error": "路径不存在"}
+        if not p.is_dir():
+            p = p.parent
+        children = sorted(
+            (d.name for d in p.iterdir() if d.is_dir() and not d.name.startswith(".")),
+            key=str.lower,
+        )
+        parent = str(p.parent) if p.parent != p else ""
+        return {"ok": True, "path": str(p), "parent": parent, "dirs": children}
+    except PermissionError:
+        return {"ok": False, "error": "无权限访问该目录"}
+    except Exception as exc:
+        return {"ok": False, "error": str(exc)}
+
+
 @app.get("/api/datasets")
 async def datasets_list() -> list[dict[str, Any]]:
     return dataset_service.list_all()
