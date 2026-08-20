@@ -58,6 +58,7 @@
     .login-mask { position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#0f172a,#1e2a4a); }.login-box { width:min(360px,90vw); background:#fff; border-radius:16px; padding:38px 34px; box-shadow:0 24px 60px rgba(0,0,0,.35); text-align:center; }.login-box h1 { font-size:26px; margin:0 0 4px; }.login-box p { color:var(--muted); font-size:13px; margin:0 0 26px; }.login-box input { width:100%; height:44px; margin-bottom:13px; padding:0 14px; border:1px solid #dce2ed; border-radius:9px; font:inherit; font-size:14px; outline:none; }.login-box input:focus { border-color:var(--brand); }.login-box .btn { width:100%; height:44px; font-size:15px; }.login-error { min-height:18px; color:#bd4c55; font-size:12px; margin-bottom:8px; }
     .path-input { display:flex; gap:8px; align-items:center; }.path-input input { flex:1; min-width:0; }.path-pick { flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; border:1px solid #dce2ed; border-radius:9px; background:#fff; cursor:pointer; color:#5b6b8c; transition:.15s; padding:0; }.path-pick:hover { border-color:var(--brand); color:var(--brand); background:var(--brand-soft); }
     .dir-current { font-size:13px; color:#43516a; background:#f4f7fc; border:1px solid var(--line); border-radius:9px; padding:10px 12px; margin-bottom:12px; word-break:break-all; }.dir-list { max-height:42vh; overflow:auto; border:1px solid var(--line); border-radius:9px; }.dir-item { display:flex; align-items:center; gap:8px; padding:10px 12px; cursor:pointer; font-size:13px; color:#43516a; border-bottom:1px solid #eef2f9; }.dir-item:last-child { border-bottom:0; }.dir-item:hover { background:var(--brand-soft); }.dir-empty { padding:20px; text-align:center; color:var(--muted); font-size:13px; }
+    .table-wrap { overflow:auto; border:1px solid var(--line); border-radius:10px; margin-top:14px; }.user-table { width:100%; border-collapse:collapse; font-size:13px; }.user-table th { text-align:left; padding:10px 14px; background:#f4f7fc; color:var(--muted); font-weight:600; font-size:12px; border-bottom:1px solid var(--line); }.user-table td { padding:11px 14px; border-bottom:1px solid #eef2f9; color:#43516a; }.user-table tr:last-child td { border-bottom:0; }.user-table tbody tr { cursor:pointer; transition:.12s; }.user-table tbody tr:hover { background:var(--brand-soft); }
     @media (max-width:820px) { .app{grid-template-columns:1fr} aside{display:none} main{padding:26px 18px}.grid{grid-template-columns:1fr} header{margin-bottom:22px}.dashboard-status-bar{justify-content:flex-start}.hardware-title{align-items:flex-start}.dataset-values{grid-template-columns:repeat(2,1fr)}.metrics{grid-template-columns:repeat(2,1fr)}.gauges{grid-template-columns:1fr} }
     @media (max-width:460px) { .form-grid{grid-template-columns:1fr}.card{padding:19px}.full{grid-column:auto} h1{font-size:22px} }
   </style>
@@ -140,15 +141,9 @@
           </div>
           <div class="actions"><button class="btn primary" id="save-settings" type="button">保存设置</button></div>
         </section>
-        <section class="card" style="margin-top:22px" id="user-mgmt-card">
-          <h2>我的账号</h2>
-          <div class="form-grid">
-            <div><label for="old-password">原密码</label><input id="old-password" type="password" autocomplete="current-password" /></div>
-            <div><label for="new-password">新密码（至少 6 位）</label><input id="new-password" type="password" autocomplete="new-password" /></div>
-          </div>
-          <div class="actions"><button class="btn primary" id="change-password-btn" type="button">修改密码</button></div>
-          <div class="list-head" id="user-mgmt-admin" style="margin-top:22px;display:none"><h2>用户管理</h2><span class="text-small" id="user-list-status"></span><button class="btn primary" id="add-user-btn" type="button">+ 新增用户</button></div>
-          <div id="user-list" class="list-grid"></div>
+        <section class="card" style="margin-top:22px;display:none" id="user-mgmt-card">
+          <div class="list-head"><h2>用户管理</h2><span class="text-small" id="user-list-status"></span><button class="btn primary" id="add-user-btn" type="button">+ 新增用户</button></div>
+          <div class="table-wrap"><table class="user-table"><thead><tr><th>用户名</th><th>角色</th><th>创建时间</th><th>操作</th></tr></thead><tbody id="user-tbody"></tbody></table></div>
         </section>
       </section>
     </main>
@@ -202,6 +197,16 @@
         <div><label for="nu-pwd">密码（至少 6 位）</label><input id="nu-pwd" type="password" placeholder="••••••" /></div>
       </div>
       <div class="actions"><button class="btn" id="user-modal-cancel" type="button">取消</button><button class="btn primary" id="user-modal-submit" type="button">创建</button></div>
+    </div>
+  </div>
+  <div class="modal-mask" id="user-pwd-modal" style="display:none">
+    <div class="modal">
+      <div class="modal-head"><h2>修改密码</h2><button class="modal-close" id="user-pwd-modal-close" type="button">×</button></div>
+      <p class="hint" id="user-pwd-target" style="margin-bottom:16px"></p>
+      <div class="form-grid">
+        <div><label for="up-new">新密码（至少 6 位）</label><input id="up-new" type="password" placeholder="••••••" autocomplete="new-password" /></div>
+      </div>
+      <div class="actions"><button class="btn" id="user-pwd-cancel" type="button">取消</button><button class="btn primary" id="user-pwd-submit" type="button">保存</button></div>
     </div>
   </div>
   <div class="login-mask" id="login-mask" style="display:none">
@@ -957,73 +962,73 @@
         showToast('服务未连接，设置已保存到本地浏览器');
       }
     });
-    document.getElementById('change-password-btn').addEventListener('click', async () => {
-      const oldPwd = document.getElementById('old-password').value;
-      const newPwd = document.getElementById('new-password').value;
-      if (!oldPwd) { showToast('请输入原密码'); return; }
-      if (newPwd.length < 6) { showToast('新密码至少 6 位'); return; }
-      try {
-        const res = await api('/api/change-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ old_password: oldPwd, new_password: newPwd }) });
-        showToast(res.message || '密码已修改');
-        document.getElementById('old-password').value = '';
-        document.getElementById('new-password').value = '';
-      } catch (e) { showToast('修改失败：' + (parseErr(e) || '')); }
-    });
     document.getElementById('sidebar-logout-btn').addEventListener('click', () => {
       api('/api/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: authToken }), _skip401: true }).catch(() => {});
       logout();
     });
-    // ---------- 用户管理（仅超级管理员） ----------
+    // ---------- 用户管理（仅超级管理员，表格展示，双击改密） ----------
     function showUserMgmt() {
-      // 卡片对所有登录用户可见（我的账号：改密/退出），用户管理区块仅超级管理员可见
       const card = document.getElementById('user-mgmt-card');
-      card.style.display = '';
-      const admin = document.getElementById('user-mgmt-admin');
-      admin.style.display = currentUserIsAdmin ? '' : 'none';
+      card.style.display = currentUserIsAdmin ? '' : 'none';
       if (currentUserIsAdmin) loadUsers();
     }
+    let pwdTarget = '';
+    function openUserPwdModal(username) {
+      pwdTarget = username;
+      document.getElementById('user-pwd-target').textContent = '为「' + username + '」设置新密码（至少 6 位）';
+      document.getElementById('up-new').value = '';
+      document.getElementById('user-pwd-modal').style.display = 'flex';
+    }
     async function loadUsers() {
-      const box = document.getElementById('user-list');
+      const tbody = document.getElementById('user-tbody');
       const status = document.getElementById('user-list-status');
       try {
         const res = await api('/api/users');
         if (!res.ok) { status.textContent = res.error || '加载失败'; return; }
-        status.textContent = '共 ' + res.users.length + ' 个用户';
-        box.innerHTML = '';
+        status.textContent = '共 ' + res.users.length + ' 个用户（双击账号修改密码）';
+        tbody.innerHTML = '';
+        if (!res.users.length) {
+          tbody.innerHTML = '<tr><td colspan="4" class="dir-empty">暂无用户</td></tr>';
+          return;
+        }
         res.users.forEach(u => {
           const isAdmin = !!u.is_admin;
-          const div = document.createElement('div'); div.className = 'list-item';
-          const actions = isAdmin
-            ? '<span class="badge custom">超级管理员</span>'
-            : '<span class="badge upload">普通用户</span>';
-          const btns = isAdmin
-            ? '<button class="btn-link" data-user-pwd="' + u.username + '">重置密码</button>'
-            : '<button class="btn-link" data-user-pwd="' + u.username + '">重置密码</button><button class="btn-link danger" data-user-del="' + u.username + '">删除</button>';
-          div.innerHTML = '<h3>' + u.username + '</h3><div class="meta">' + actions + '</div><div class="time-row"><span>创建时间</span><b>' + formatTime(u.created_at) + '</b></div><div class="item-actions">' + btns + '</div>';
-          box.appendChild(div);
-          div.querySelector('[data-user-pwd]').addEventListener('click', async () => {
-            const np = prompt('为「' + u.username + '」设置新密码（至少 6 位）：');
-            if (!np) return;
-            try {
-              const r = await api('/api/users', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: u.username, password: np }) });
-              showToast(r.message || '密码已重置');
-            } catch (e) { showToast('操作失败：' + (parseErr(e) || '')); }
-          });
-          const delBtn = div.querySelector('[data-user-del]');
-          if (delBtn) delBtn.addEventListener('click', async () => {
+          const tr = document.createElement('tr');
+          tr.title = '双击修改密码';
+          tr.innerHTML = '<td>' + u.username + '</td>' +
+            '<td>' + (isAdmin ? '<span class="badge custom">超级管理员</span>' : '<span class="badge upload">普通用户</span>') + '</td>' +
+            '<td>' + formatTime(u.created_at) + '</td>' +
+            '<td>' + (isAdmin ? '' : '<button class="btn-link danger" data-user-del="' + u.username + '">删除</button>') + '</td>';
+          tr.addEventListener('dblclick', () => openUserPwdModal(u.username));
+          tbody.appendChild(tr);
+          const delBtn = tr.querySelector('[data-user-del]');
+          if (delBtn) delBtn.addEventListener('click', async e => {
+            e.stopPropagation();
             if (!confirm('确定删除用户「' + u.username + '」？')) return;
             try {
               const r = await api('/api/users?username=' + encodeURIComponent(u.username), { method: 'DELETE' });
               showToast(r.message || '已删除');
               loadUsers();
-            } catch (e) { showToast('删除失败：' + (parseErr(e) || '')); }
+            } catch (err) { showToast('删除失败：' + (parseErr(err) || '')); }
           });
         });
       } catch (_) {
         status.textContent = '服务未连接';
-        box.innerHTML = '<div class="empty-state">服务未连接</div>';
+        tbody.innerHTML = '<tr><td colspan="4" class="dir-empty">服务未连接</td></tr>';
       }
     }
+    const pwdModal = document.getElementById('user-pwd-modal');
+    document.getElementById('user-pwd-modal-close').addEventListener('click', () => { pwdModal.style.display = 'none'; });
+    document.getElementById('user-pwd-cancel').addEventListener('click', () => { pwdModal.style.display = 'none'; });
+    document.getElementById('user-pwd-submit').addEventListener('click', async () => {
+      const np = document.getElementById('up-new').value;
+      if (np.length < 6) { showToast('新密码至少 6 位'); return; }
+      try {
+        const r = await api('/api/users', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: pwdTarget, password: np }) });
+        showToast(r.message || '密码已修改');
+        pwdModal.style.display = 'none';
+      } catch (e) { showToast('操作失败：' + (parseErr(e) || '')); }
+    });
     const userModal = document.getElementById('user-modal');
     document.getElementById('add-user-btn').addEventListener('click', () => {
       document.getElementById('nu-name').value = '';
