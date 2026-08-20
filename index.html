@@ -54,6 +54,7 @@
     .modal-mask { position:fixed; inset:0; background:rgba(15,23,42,.5); display:flex; align-items:center; justify-content:center; z-index:50; }.modal { width:min(580px,92vw); max-height:88vh; overflow:auto; background:#fff; border-radius:14px; padding:26px; box-shadow:0 18px 50px rgba(22,35,62,.25); }.modal-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }.modal-head h2 { margin:0; }.modal-close { border:0; background:none; font-size:24px; line-height:1; color:var(--muted); cursor:pointer; padding:4px; }.modal-close:hover { color:var(--ink); }
     .btn-link.danger { color:#bd4c55; border-color:#f0ccd0; }.btn-link.danger:hover { background:#fff6f6; }.task-detail { display:grid; grid-template-columns:1fr 1fr; gap:10px; }.detail-row { border:1px solid var(--line); border-radius:8px; padding:10px 12px; }.detail-row span { display:block; color:var(--muted); font-size:11px; margin-bottom:4px; }.detail-row b { font-size:13px; font-weight:600; color:#43516a; word-break:break-all; }
     .convert-formats { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }.format-chip { display:flex; flex-direction:column; gap:4px; padding:13px 14px; border:1.5px solid #dce2ed; border-radius:10px; cursor:pointer; transition:.15s; }.format-chip.on { border-color:var(--brand); background:var(--brand-soft); }.format-chip input { display:none; }.format-chip b { font-size:14px; color:#43516a; }.format-chip span { font-size:11px; color:var(--muted); }.convert-status { margin-top:16px; min-height:18px; color:var(--brand); font-size:13px; }
+    .login-mask { position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#0f172a,#1e2a4a); }.login-box { width:min(360px,90vw); background:#fff; border-radius:16px; padding:38px 34px; box-shadow:0 24px 60px rgba(0,0,0,.35); text-align:center; }.login-box h1 { font-size:26px; margin:0 0 4px; }.login-box p { color:var(--muted); font-size:13px; margin:0 0 26px; }.login-box input { width:100%; height:44px; margin-bottom:13px; padding:0 14px; border:1px solid #dce2ed; border-radius:9px; font:inherit; font-size:14px; outline:none; }.login-box input:focus { border-color:var(--brand); }.login-box .btn { width:100%; height:44px; font-size:15px; }.login-error { min-height:18px; color:#bd4c55; font-size:12px; margin-bottom:8px; }
     @media (max-width:820px) { .app{grid-template-columns:1fr} aside{display:none} main{padding:26px 18px}.grid{grid-template-columns:1fr} header{margin-bottom:22px}.dashboard-status-bar{justify-content:flex-start}.hardware-title{align-items:flex-start}.dataset-values{grid-template-columns:repeat(2,1fr)}.metrics{grid-template-columns:repeat(2,1fr)}.gauges{grid-template-columns:1fr} }
     @media (max-width:460px) { .form-grid{grid-template-columns:1fr}.card{padding:19px}.full{grid-column:auto} h1{font-size:22px} }
   </style>
@@ -135,6 +136,14 @@
           </div>
           <div class="actions"><button class="btn primary" id="save-settings" type="button">保存设置</button></div>
         </section>
+        <section class="card" style="margin-top:22px">
+          <h2>账号安全</h2>
+          <div class="form-grid">
+            <div><label for="old-password">原密码</label><input id="old-password" type="password" autocomplete="current-password" /></div>
+            <div><label for="new-password">新密码（至少 6 位）</label><input id="new-password" type="password" autocomplete="new-password" /></div>
+          </div>
+          <div class="actions"><button class="btn primary" id="change-password-btn" type="button">修改密码</button><button class="btn" id="logout-btn" type="button">退出登录</button></div>
+        </section>
       </section>
     </main>
   </div>
@@ -169,21 +178,110 @@
       <div class="actions"><button class="btn" id="convert-cancel" type="button">取消</button><button class="btn primary" id="convert-submit" type="button">开始转换</button></div>
     </div>
   </div>
+  <div class="login-mask" id="login-mask" style="display:none">
+    <div class="login-box">
+      <h1>VisionLab</h1>
+      <p>YOLO 训练管理平台</p>
+      <input id="login-user" type="text" placeholder="用户名" value="admin" autocomplete="username" />
+      <input id="login-pwd" type="password" placeholder="密码" autocomplete="current-password" />
+      <div class="login-error" id="login-error"></div>
+      <button class="btn primary" id="login-btn" type="button">登 录</button>
+    </div>
+  </div>
   <div class="toast" id="toast" role="status"></div>
   <script>
     const API_BASE = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
       ? window.location.origin
       : 'http://127.0.0.1:8000';
     let ws, uploadedWeightsPath = '', backendOnline = false, trainPoints = ['40,38'], valPoints = ['40,32'];
+    let authToken = localStorage.getItem('visionlab-token') || '', appInited = false, wsStop = false;
 
     async function api(path, options = {}) {
-      const response = await fetch(`${API_BASE}${path}`, options);
-      if (!response.ok) throw new Error(await response.text());
-      const contentType = response.headers.get('content-type') || '';
-      return contentType.includes('application/json') ? response.json() : response.text();
+      const { _skip401 = false, headers = {}, ...rest } = options;
+      const finalHeaders = { ...headers };
+      if (authToken) finalHeaders['Authorization'] = 'Bearer ' + authToken;
+      const response = await fetch(`${API_BASE}${path}`, { ...rest, headers: finalHeaders });
+      const text = await response.text();
+      let data = text;
+      try { data = JSON.parse(text); } catch (_) {}
+      if (response.status === 401 && !_skip401 && path !== '/api/login') {
+        showLogin();
+        throw new Error('未登录');
+      }
+      if (!response.ok) {
+        throw new Error((data && data.detail) || text || ('HTTP ' + response.status));
+      }
+      return typeof data === 'object' ? data : text;
+    }
+
+    function showLogin() {
+      document.getElementById('login-mask').style.display = 'flex';
+      document.getElementById('login-error').textContent = '';
+    }
+    function hideLogin() {
+      document.getElementById('login-mask').style.display = 'none';
+    }
+    function parseErr(e) {
+      const msg = (e && e.message) || '';
+      try { const j = JSON.parse(msg); return j.detail || msg; } catch (_) { return msg; }
+    }
+    async function doLogin() {
+      const username = document.getElementById('login-user').value.trim() || 'admin';
+      const password = document.getElementById('login-pwd').value;
+      const errBox = document.getElementById('login-error');
+      if (!password) { errBox.textContent = '请输入密码'; return; }
+      try {
+        const res = await api('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+          _skip401: true,
+        });
+        authToken = res.token || '';
+        localStorage.setItem('visionlab-token', authToken);
+        document.getElementById('login-pwd').value = '';
+        hideLogin();
+        initApp();
+      } catch (e) {
+        errBox.textContent = parseErr(e) || '登录失败';
+      }
+    }
+    function logout() {
+      wsStop = true;
+      if (ws) { try { ws.close(); } catch (_) {} }
+      authToken = '';
+      appInited = false;
+      localStorage.removeItem('visionlab-token');
+      showLogin();
+    }
+    async function downloadFile(relPath, name) {
+      try {
+        showToast('正在下载 ' + (name || relPath) + ' …');
+        const response = await fetch(`${API_BASE}/api/models/download?path=${encodeURIComponent(relPath)}`, {
+          headers: authToken ? { 'Authorization': 'Bearer ' + authToken } : {},
+        });
+        if (!response.ok) {
+          let detail = 'HTTP ' + response.status;
+          try { const j = await response.json(); detail = j.detail || detail; } catch (_) {}
+          throw new Error(detail);
+        }
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = name || (relPath || 'model').split('/').pop() || 'model';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+        showToast('下载完成：' + (name || ''));
+      } catch (e) {
+        showToast('下载失败：' + (parseErr(e) || ''));
+      }
     }
 
     function connectWebSocket() {
+      if (wsStop) return;
       const protocol = API_BASE.startsWith('https') ? 'wss' : 'ws';
       const host = API_BASE.replace(/^https?:\/\//, '');
       ws = new WebSocket(`${protocol}://${host}/ws`);
@@ -198,7 +296,7 @@
           if (document.getElementById('setup-screen').style.display !== 'none') switchToTrainingScreen(statusData.task_name);
         }
       };
-      ws.onclose = () => setTimeout(connectWebSocket, 2500);
+      ws.onclose = () => { if (!wsStop) setTimeout(connectWebSocket, 2500); };
     }
     function switchToTrainingScreen(taskName) {
       document.getElementById('setup-screen').style.display = 'none';
@@ -219,8 +317,6 @@
         }
       } catch (_) {}
     }
-    checkTrainingRecovery();
-
     async function refreshEnvironment(modelName) {
       const status = document.getElementById('conda-status');
       const start = document.getElementById('start');
@@ -382,8 +478,37 @@
     }
     window.reportHardwareMetrics = setHardwareMetrics;
     window.addEventListener('hardware-metrics', event => setHardwareMetrics(event.detail));
-    connectWebSocket();
-    refreshEnvironment(document.getElementById('model').value);
+    function initApp() {
+      if (appInited) return;
+      appInited = true;
+      wsStop = false;
+      connectWebSocket();
+      refreshEnvironment(document.getElementById('model').value);
+      loadSettings();
+      checkTrainingRecovery();
+    }
+    document.getElementById('login-btn').addEventListener('click', doLogin);
+    document.getElementById('login-user').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+    document.getElementById('login-pwd').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+    (async function bootstrap() {
+      if (authToken) {
+        try {
+          await api('/api/auth/me');
+          hideLogin();
+          initApp();
+          return;
+        } catch (e) {
+          if ((e && e.message) === '未登录') return; // api() 已弹出登录页（token 无效/过期）
+        }
+      }
+      if (authToken) {
+        // 服务不可达（网络错误）→ 进入离线浏览模式，不强制登录
+        hideLogin();
+        initApp();
+      } else {
+        showLogin();
+      }
+    })();
     document.querySelectorAll('.nav-item[data-view]').forEach(item => {
       item.addEventListener('click', () => {
         const view = item.dataset.view;
@@ -470,11 +595,13 @@
           const div = document.createElement('div'); div.className = 'list-item';
           const timeLabel = item.source === 'training' ? '最后训练' : '上传时间';
           const isPt = item.path && item.path.toLowerCase().endsWith('.pt');
-          const actions = item.path ? `<div class="item-actions"><a class="btn-link" href="${API_BASE}/api/models/download?path=${encodeURIComponent(item.path)}">下载</a>${isPt ? `<button class="btn-link" data-model-convert="${encodeURIComponent(item.path)}" data-model-name="${item.name}">转换</button>` : ''}<button class="btn-link danger" data-model-del="${encodeURIComponent(item.path)}">删除</button></div>` : '';
+          const actions = item.path ? `<div class="item-actions"><button class="btn-link" data-model-dl="${encodeURIComponent(item.path)}" data-model-name="${item.name}">下载</button>${isPt ? `<button class="btn-link" data-model-convert="${encodeURIComponent(item.path)}" data-model-name="${item.name}">转换</button>` : ''}<button class="btn-link danger" data-model-del="${encodeURIComponent(item.path)}">删除</button></div>` : '';
           div.innerHTML = '<h3>' + item.name + '</h3><p>' + (item.path || '—') + '</p><div class="meta"><span>' + (item.size_mb != null ? item.size_mb + ' MB' : '—') + '</span><span class="badge ' + (item.source === 'training' ? 'training' : 'upload') + '">' + (item.source === 'training' ? '训练产出' : '已上传') + '</span></div><div class="time-row"><span>' + timeLabel + '</span><b>' + formatTime(item.updated_at) + '</b></div>' + actions;
           box.appendChild(div);
           const convBtn = div.querySelector('[data-model-convert]');
           if (convBtn) convBtn.addEventListener('click', () => openConvertModal(convBtn.dataset.modelConvert, convBtn.dataset.modelName));
+          const dlBtn = div.querySelector('[data-model-dl]');
+          if (dlBtn) dlBtn.addEventListener('click', () => downloadFile(dlBtn.dataset.modelDl, dlBtn.dataset.modelName));
           const delBtn = div.querySelector('[data-model-del]');
           if (delBtn) delBtn.addEventListener('click', async () => {
             if (!confirm('确定删除权重文件「' + item.name + '」？')) return;
@@ -718,7 +845,22 @@
         showToast('服务未连接，设置已保存到本地浏览器');
       }
     });
-    loadSettings();
+    document.getElementById('change-password-btn').addEventListener('click', async () => {
+      const oldPwd = document.getElementById('old-password').value;
+      const newPwd = document.getElementById('new-password').value;
+      if (!oldPwd) { showToast('请输入原密码'); return; }
+      if (newPwd.length < 6) { showToast('新密码至少 6 位'); return; }
+      try {
+        const res = await api('/api/change-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ old_password: oldPwd, new_password: newPwd }) });
+        showToast(res.message || '密码已修改');
+        document.getElementById('old-password').value = '';
+        document.getElementById('new-password').value = '';
+      } catch (e) { showToast('修改失败：' + (parseErr(e) || '')); }
+    });
+    document.getElementById('logout-btn').addEventListener('click', () => {
+      api('/api/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: authToken }), _skip401: true }).catch(() => {});
+      logout();
+    });
     const COCO_NAMES = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'];
     const datasetProfiles = { 'coco8.yaml': { path:'datasets/coco8', split:'4 / 4 / -', classes:'80 类（COCO）', count:80, train:'images/train', val:'images/val', test:'', names:COCO_NAMES, download:'https://ultralytics.com/assets/coco8.zip', labels:'labels/train.cache' }, 'coco128.yaml': { path:'datasets/coco128', split:'128 / 128 / -', classes:'80 类（COCO）', count:80, train:'images/train2017', val:'images/train2017', test:'', names:COCO_NAMES, download:'https://ultralytics.com/assets/coco128.zip', labels:'labels/train.cache' }, 'traffic-object-v3.yaml': { path:'datasets/traffic-object-v3', split:'9,984 / 2,496 / -', classes:'4 类', count:4, train:'images/train', val:'images/val', test:'images/test', names:['person', 'car', 'truck', 'bus'], download:'', labels:'labels/train.cache' }, 'custom-data.yaml': { path:'', split:'请在 YAML 中配置', classes:'自定义类别', count:'', train:'', val:'', test:'', names:[], download:'', labels:'' } };
     function updateDatasetSettings(value) { const profile=datasetProfiles[value] || datasetProfiles['custom-data.yaml']; if (profile.count) document.getElementById('class-count').value=profile.count; else document.getElementById('class-count').value=''; }

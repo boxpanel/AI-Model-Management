@@ -11,6 +11,7 @@ from fastapi import FastAPI, File, HTTPException, UploadFile, WebSocket, WebSock
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 
+from .auth import auth_service, ensure_default_user
 from .database import Database
 from .datasets import DatasetService
 from .environment import get_environment
@@ -55,6 +56,71 @@ app.add_middleware(
 async def on_startup() -> None:
     manager.set_event_loop(asyncio.get_running_loop())
     manager.recover()
+    # 确保默认管理员账号存在（install.sh 或首次启动创建）
+    created_pwd = ensure_default_user(db)
+    if created_pwd:
+        print(f"[VisionLab] 已创建默认账号 admin / {created_pwd}（请登录后立即修改密码）")
+
+
+# ---------- 登录认证 ----------
+@app.post("/api/login")
+async def login(payload: dict[str, str]) -> dict[str, Any]:
+    username = (payload.get("username") or "").strip()
+    password = payload.get("password") or ""
+    user = db.get_user(username)
+    if not user or not auth_service.verify_password(password, user["password_hash"]):
+        raise HTTPException(status_code=401, detail="用户名或密码错误")
+    token = auth_service.issue_token(username)
+    return {"ok": True, "token": token, "username": username}
+
+
+@app.post("/api/logout")
+async def logout(payload: dict[str, str] | None = None) -> dict[str, Any]:
+    token = (payload or {}).get("token") or ""
+    if token:
+        auth_service.revoke_token(token)
+    return {"ok": True}
+
+
+@app.get("/api/auth/me")
+async def auth_me(authorization: str | None = None) -> dict[str, Any]:
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="未登录")
+    username = auth_service.validate_token(authorization[7:].strip())
+    if not username:
+        raise HTTPException(status_code=401, detail="登录已过期")
+    return {"ok": True, "username": username}
+
+
+@app.post("/api/change-password")
+async def change_password(payload: dict[str, str], authorization: str | None = None) -> dict[str, Any]:
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="未登录")
+    username = auth_service.validate_token(authorization[7:].strip())
+    if not username:
+        raise HTTPException(status_code=401, detail="登录已过期")
+    old = payload.get("old_password") or ""
+    new = payload.get("new_password") or ""
+    user = db.get_user(username)
+    if not user or not auth_service.verify_password(old, user["password_hash"]):
+        raise HTTPException(status_code=400, detail="原密码错误")
+    if len(new) < 6:
+        raise HTTPException(status_code=400, detail="新密码至少 6 位")
+    db.update_password(username, auth_service.hash_password(new))
+    return {"ok": True, "message": "密码已修改"}
+
+
+# 业务接口鉴权：除登录/健康检查外，所有 /api/ 请求都需要 Bearer Token
+@app.middleware("http")
+async def auth_middleware(request: Any, call_next: Any) -> Any:
+    path = request.url.path
+    if path.startswith("/api/") and path not in ("/api/login", "/api/health"):
+        auth_header = request.headers.get("authorization", "")
+        if not auth_header.startswith("Bearer "):
+            return JSONResponse(status_code=401, content={"detail": "未登录"})
+        if not auth_service.validate_token(auth_header[7:].strip()):
+            return JSONResponse(status_code=401, content={"detail": "登录已过期"})
+    return await call_next(request)
 
 
 @app.get("/api/health")

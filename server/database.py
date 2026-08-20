@@ -67,6 +67,12 @@ class Database:
                     class_count INTEGER,
                     created_at TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS users (
+                    id TEXT PRIMARY KEY,
+                    username TEXT NOT NULL UNIQUE,
+                    password_hash TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                );
                 """
             )
             conn.execute(
@@ -207,4 +213,32 @@ class Database:
     def delete_dataset(self, name: str) -> None:
         with self._lock, self._connect() as conn:
             conn.execute("DELETE FROM datasets WHERE name = ?", (name,))
+            conn.commit()
+
+    # ------------------------------------------------------------------ #
+    # 用户
+    # ------------------------------------------------------------------ #
+    def get_user(self, username: str) -> Optional[dict[str, Any]]:
+        with self._lock, self._connect() as conn:
+            row = conn.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
+            return dict(row) if row else None
+
+    def user_count(self) -> int:
+        with self._lock, self._connect() as conn:
+            row = conn.execute("SELECT COUNT(*) AS c FROM users").fetchone()
+            return int(row["c"])
+
+    def create_user(self, username: str, password_hash: str) -> None:
+        user_id = uuid.uuid4().hex[:12]
+        now = _utc_now()
+        with self._lock, self._connect() as conn:
+            conn.execute(
+                "INSERT INTO users(id, username, password_hash, created_at) VALUES (?, ?, ?, ?)",
+                (user_id, username, password_hash, now),
+            )
+            conn.commit()
+
+    def update_password(self, username: str, password_hash: str) -> None:
+        with self._lock, self._connect() as conn:
+            conn.execute("UPDATE users SET password_hash = ? WHERE username = ?", (password_hash, username))
             conn.commit()

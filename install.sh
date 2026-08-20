@@ -164,6 +164,20 @@ fi
 "$VENV_PY" -m pip install --upgrade pip
 "$VENV_PY" -m pip install -r requirements-server.txt
 
+# ---------- 创建默认管理员账号 ----------
+ADMIN_USER="admin"
+ADMIN_PWD="$(openssl rand -hex 8 2>/dev/null || head -c 8 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+echo "  - 创建默认管理员账号 ${ADMIN_USER} …"
+"$VENV_PY" "$ADMIN_USER" "$ADMIN_PWD" <<'PY'
+import sys
+sys.path.insert(0, ".")
+from pathlib import Path
+from server.database import Database
+from server.auth import ensure_default_user
+db = Database(Path("visionlab.db"))
+ensure_default_user(db, sys.argv[1], sys.argv[2])
+PY
+
 # ---------- 6. GPU / CUDA 环境检测 ----------
 echo "[6/6] 环境检测…"
 if command -v nvidia-smi &>/dev/null && nvidia-smi &>/dev/null; then
@@ -177,7 +191,24 @@ fi
 
 echo ""
 echo "=========================================="
-echo " 安装完成！"
-echo " 启动服务：      ./start.sh"
-echo " 开发模式启动：  ./start.sh --dev"
+echo " VisionLab 安装完成！"
+echo "=========================================="
+SERVER_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
+[ -z "$SERVER_IP" ] && SERVER_IP="localhost"
+echo "  页面地址:   http://${SERVER_IP}:8000"
+echo "  本机访问:   http://127.0.0.1:8000"
+echo ""
+echo "  启动服务:   ./start.sh"
+echo "  开发模式:   ./start.sh --dev"
+echo "  停止服务:   Ctrl+C 或 kill \$(pgrep -f uvicorn)"
+echo ""
+echo "  训练输出:   $SCRIPT_DIR/runs"
+echo "  数据集:     $SCRIPT_DIR/datasets"
+echo "  训练环境:   YOLOv11 / YOLOv8 / YOLOv5（Conda，Python 3.11）"
+echo ""
+echo "  登录账号:   ${ADMIN_USER}"
+echo "  登录密码:   ${ADMIN_PWD}"
+echo "  （请登录后立即在「设置」页修改密码）"
+echo "=========================================="
+echo " 如需开机自启或更多配置，请告诉我们进一步配置。"
 echo "=========================================="
