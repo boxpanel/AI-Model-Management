@@ -64,18 +64,41 @@ def list_conda_envs() -> list[dict[str, str]]:
 def resolve_env_for_model(model_version: str, preferred: str = "") -> Optional[str]:
     if preferred:
         return preferred
-    env_names = {env["name"].lower(): env["name"] for env in list_conda_envs()}
+    envs = list_conda_envs()
+    prefix = _current_conda_prefix()
+    env_names = {env["name"].lower(): env["name"] for env in envs}
     for candidate in MODEL_ENV_CANDIDATES.get(model_version, [model_version]):
-        matched = env_names.get(candidate.lower())
-        if matched:
-            return matched
+        cand_lower = candidate.lower()
+        matched = env_names.get(cand_lower)
+        if not matched:
+            continue
+        # 同名环境优先选择当前 conda（/root/miniconda3 等）前缀下的，避免匹配到其他用户的环境
+        for env in envs:
+            if env["name"] == matched and prefix and env["path"].startswith(prefix):
+                return matched
+        return matched
     return None
 
 
+def _current_conda_prefix() -> str:
+    """返回当前使用的 conda 根目录（如 /root/miniconda3），用于优先匹配同源环境。"""
+    conda_bin = _find_conda()
+    if not conda_bin:
+        return ""
+    return str(Path(conda_bin).resolve().parent.parent)
+
+
 def get_conda_python(env_name: str) -> Optional[str]:
-    if not env_name or not conda_available():
+    conda_bin = _find_conda()
+    if not conda_bin or not env_name:
         return None
     envs = list_conda_envs()
+    prefix = str(Path(conda_bin).resolve().parent.parent)
+    # 优先当前 conda 前缀下的同名环境
+    for env in envs:
+        if env["name"] == env_name and env["path"].startswith(prefix):
+            candidate = Path(env["path"]) / "bin" / "python"
+            return str(candidate) if candidate.exists() else None
     target = next((env for env in envs if env["name"] == env_name), None)
     if not target:
         return None
@@ -106,7 +129,10 @@ def probe_env(python_executable: str) -> dict[str, Any]:
         )
         if result.returncode != 0:
             return {"ready": False, "message": result.stderr.strip() or "环境探测失败"}
-        return {"ready": True, **json.loads(result.stdout.strip())}
+        try:
+            return {"ready": True, **json.loads(result.stdout.strip())}
+        except Exception as exc:
+            return {"ready": False, "message": f"{exc}；stdout: {result.stdout[:200]!r}"}
     except Exception as exc:
         return {"ready": False, "message": str(exc)}
 
