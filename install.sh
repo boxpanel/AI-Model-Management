@@ -257,6 +257,9 @@ echo "  启动服务:   cd \"$SCRIPT_DIR\" && ./start.sh"
 echo "  停止服务:   cd \"$SCRIPT_DIR\" && ./stop.sh"
 echo "  删除程序:   cd \"$SCRIPT_DIR\" && ./uninstall.sh"
 echo "  开发模式:   cd \"$SCRIPT_DIR\" && ./start.sh --dev"
+if [ "$SERVER_PORT" -lt 1024 ] && [ "$(id -u)" -ne 0 ]; then
+  echo "  [提示] 端口 ${SERVER_PORT} 低于 1024，启动/停止请用 sudo 执行"
+fi
 echo ""
 echo "  训练输出:   $SCRIPT_DIR/runs"
 echo "  数据集:     $SCRIPT_DIR/datasets"
@@ -264,15 +267,23 @@ echo "  训练环境:   YOLOv11 / YOLOv8 / YOLOv5（Conda，Python 3.11）"
 echo "=========================================="
 echo "  正在自动启动服务…"
 nohup bash "$SCRIPT_DIR/start.sh" > /tmp/visionlab-start.log 2>&1 &
+START_OK=0
 for i in $(seq 1 60); do
   if curl -fsS "http://127.0.0.1:${SERVER_PORT}/api/health" >/dev/null 2>&1; then
     echo "  服务已启动 ✓  页面地址: http://${SERVER_IP}:${SERVER_PORT}"
+    START_OK=1
     break
   fi
   sleep 1
 done
-if ! curl -fsS "http://127.0.0.1:${SERVER_PORT}/api/health" >/dev/null 2>&1; then
-  echo "  [警告] 服务暂未就绪，请稍后运行 ./start.sh 或查看 /tmp/visionlab-start.log"
+if [ "$START_OK" = "0" ]; then
+  echo "  [警告] 服务未就绪，最近日志："
+  tail -n 15 /tmp/visionlab-start.log 2>/dev/null | sed 's/^/    /' || true
+  echo "  [提示] 启动命令: cd \"$SCRIPT_DIR\" && ./start.sh"
+  if [ "$SERVER_PORT" -lt 1024 ] && [ "$(id -u)" -ne 0 ]; then
+    echo "  [提示] 端口 ${SERVER_PORT} 低于 1024，普通用户无法直接绑定，请用："
+    echo "         cd \"$SCRIPT_DIR\" && sudo ./start.sh"
+  fi
 fi
 echo "  启动日志:   /tmp/visionlab-start.log"
 echo "=========================================="
