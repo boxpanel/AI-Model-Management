@@ -64,7 +64,18 @@ async def health() -> dict[str, str]:
 
 @app.get("/api/environment", response_model=EnvironmentResponse)
 async def environment(model: str = "YOLOv11") -> EnvironmentResponse:
-    return get_environment(model)
+    return get_environment(model, db.get_setting("active_conda_env"))
+
+
+@app.post("/api/environment/activate", response_model=EnvironmentResponse)
+async def environment_activate(model: str = "YOLOv11") -> EnvironmentResponse:
+    """选择模型版本时，激活对应的 Conda 训练环境并返回环境状态。"""
+    from .conda_env import resolve_env_for_model
+
+    env_name = resolve_env_for_model(model, "")
+    if env_name:
+        db.set_setting("active_conda_env", env_name)
+    return get_environment(model, env_name or "")
 
 
 @app.get("/api/hardware")

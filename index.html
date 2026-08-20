@@ -225,11 +225,12 @@
       const status = document.getElementById('conda-status');
       const start = document.getElementById('start');
       try {
-        const env = await api(`/api/environment?model=${encodeURIComponent(modelName)}`);
+        // 激活所选模型的 Conda 环境并获取环境状态
+        const env = await api('/api/environment/activate?model=' + encodeURIComponent(modelName), { method: 'POST' });
         backendOnline = true;
         document.getElementById('hardware-status').innerHTML = '<i></i>训练服务已连接';
         status.className = env.ready ? 'status' : 'status conda-inactive';
-        status.innerHTML = `<i></i>${env.ready ? '环境已激活：' + env.name : env.message}`;
+        status.innerHTML = `<i></i>${env.ready ? '已激活环境：' + env.name : env.message}`;
         start.disabled = !env.ready;
         environmentReady = env.ready;
         document.getElementById('training-env-name').textContent = env.name;
