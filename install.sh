@@ -121,6 +121,8 @@ if [ -z "$CONDA_BIN" ]; then
 fi
 if [ -n "$CONDA_BIN" ]; then
   echo "[3/6] conda: $("$CONDA_BIN" --version 2>/dev/null || echo '已安装')"
+  # 将 conda 加入用户 shell PATH（新登录终端生效），便于手动管理环境
+  "$CONDA_BIN" init bash >/dev/null 2>&1 || true
   # 接受 Anaconda 默认渠道的服务条款（2025 年起访问 repo.anaconda.com 需接受）
   "$CONDA_BIN" tos accept --override-channels --channel "https://repo.anaconda.com/pkgs/main" >/dev/null 2>&1 || true
   "$CONDA_BIN" tos accept --override-channels --channel "https://repo.anaconda.com/pkgs/r" >/dev/null 2>&1 || true

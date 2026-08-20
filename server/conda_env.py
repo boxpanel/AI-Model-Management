@@ -15,16 +15,35 @@ MODEL_ENV_CANDIDATES = {
 }
 
 
+def _find_conda() -> Optional[str]:
+    """在 PATH 与常见安装位置查找 conda 可执行文件（不依赖用户 PATH 配置）。"""
+    candidates = [
+        shutil.which("conda"),
+        os.path.expanduser("~/miniconda3/bin/conda"),
+        os.path.expanduser("~/miniconda3/condabin/conda"),
+        os.path.expanduser("~/anaconda3/bin/conda"),
+        os.path.expanduser("~/miniforge3/bin/conda"),
+        "/opt/miniconda3/bin/conda",
+        "/opt/anaconda3/bin/conda",
+        "/usr/local/miniconda3/bin/conda",
+    ]
+    for cand in candidates:
+        if cand and os.path.isfile(cand):
+            return cand
+    return None
+
+
 def conda_available() -> bool:
-    return shutil.which("conda") is not None
+    return _find_conda() is not None
 
 
 def list_conda_envs() -> list[dict[str, str]]:
-    if not conda_available():
+    conda_bin = _find_conda()
+    if not conda_bin:
         return []
     try:
         result = subprocess.run(
-            ["conda", "env", "list", "--json"],
+            [conda_bin, "env", "list", "--json"],
             capture_output=True,
             text=True,
             timeout=20,
@@ -93,11 +112,12 @@ def probe_env(python_executable: str) -> dict[str, Any]:
 
 
 def create_conda_env(env_name: str) -> tuple[bool, str]:
-    if not conda_available():
+    conda_bin = _find_conda()
+    if not conda_bin:
         return False, "未检测到 conda 命令"
     try:
         result = subprocess.run(
-            ["conda", "create", "-y", "-n", env_name, "python=3.11"],
+            [conda_bin, "create", "-y", "-n", env_name, "python=3.11"],
             capture_output=True,
             text=True,
             timeout=600,
@@ -106,7 +126,7 @@ def create_conda_env(env_name: str) -> tuple[bool, str]:
         if result.returncode != 0:
             return False, result.stderr.strip() or "创建环境失败"
         install = subprocess.run(
-            ["conda", "run", "-n", env_name, "python", "-m", "pip", "install", "ultralytics"],
+            [conda_bin, "run", "-n", env_name, "python", "-m", "pip", "install", "ultralytics"],
             capture_output=True,
             text=True,
             timeout=900,
