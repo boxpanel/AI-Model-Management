@@ -837,8 +837,8 @@
     function openDirPicker(inputId) {
       dirTargetId = inputId;
       const input = document.getElementById(inputId);
-      const start = (input.value || '').trim() || '/';
-      loadDirList(start);
+      // 以输入框当前值为起点（空值由后端默认打开项目根目录）
+      loadDirList((input.value || '').trim());
       document.getElementById('dir-modal').style.display = 'flex';
     }
     document.querySelectorAll('.path-pick').forEach(btn => {

@@ -150,12 +150,18 @@ async def hardware() -> dict[str, Any]:
 
 
 @app.get("/api/fs/dirs")
-async def fs_dirs(path: str = "/") -> dict[str, Any]:
-    """列出服务器目录下的子目录，供页面"路径选择"使用（仅目录，跳过隐藏项）。"""
+async def fs_dirs(path: str = "") -> dict[str, Any]:
+    """列出服务器目录下的子目录，供页面"路径选择"使用（仅目录，跳过隐藏项）。
+    空路径默认打开项目根目录；相对路径基于项目根目录解析。"""
     try:
-        p = Path(path).expanduser()
+        if not path.strip():
+            p = BASE_DIR
+        else:
+            p = Path(path).expanduser()
+            if not p.is_absolute():
+                p = (BASE_DIR / p).resolve()
         if not p.exists():
-            return {"ok": False, "error": "路径不存在"}
+            return {"ok": False, "error": f"路径不存在：{p}"}
         if not p.is_dir():
             p = p.parent
         children = sorted(
