@@ -26,6 +26,13 @@ if ! command -v python3 &>/dev/null; then
   exit 1
 fi
 
+# 服务已在运行时直接提示退出（避免端口占用报错 address already in use）
+if curl -fsS "http://127.0.0.1:${PORT}/api/health" >/dev/null 2>&1; then
+  echo "VisionLab 服务已在运行：http://127.0.0.1:${PORT}"
+  echo "如需重启，请先停止：cd \"$SCRIPT_DIR\" && ./stop.sh && ./start.sh"
+  exit 0
+fi
+
 # 优先使用项目虚拟环境（避免 Ubuntu 24.04+ 的 PEP 668 限制）
 # 注意：Web 服务运行在 venv；训练/转换子进程使用对应模型的 Conda 环境（见 server/training.py）
 VENV_PY="$SCRIPT_DIR/venv/bin/python"
