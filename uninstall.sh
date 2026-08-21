@@ -32,6 +32,17 @@ echo "[1/3] 停止服务…"
 bash "$SCRIPT_DIR/stop.sh" || true
 sleep 1
 
+# 移除开机自启服务（如已注册）
+UNINSTALL_SUDO=""
+if [ "$(id -u)" -ne 0 ] && command -v sudo &>/dev/null; then UNINSTALL_SUDO="sudo"; fi
+if [ -f "/etc/systemd/system/visionlab.service" ]; then
+  echo "  - 移除开机自启服务 visionlab …"
+  $UNINSTALL_SUDO systemctl stop visionlab 2>/dev/null || true
+  $UNINSTALL_SUDO systemctl disable visionlab 2>/dev/null || true
+  $UNINSTALL_SUDO rm -f /etc/systemd/system/visionlab.service
+  $UNINSTALL_SUDO systemctl daemon-reload 2>/dev/null || true
+fi
+
 echo "[2/3] 删除程序文件…"
 rm -rf "$SCRIPT_DIR/venv"
 rm -f "$SCRIPT_DIR/visionlab.db" "$SCRIPT_DIR/.visionlab_port"

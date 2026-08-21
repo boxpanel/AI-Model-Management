@@ -353,6 +353,51 @@ echo "  训练输出:   $SCRIPT_DIR/runs"
 echo "  数据集:     $SCRIPT_DIR/datasets"
 echo "  训练环境:   YOLOv11 / YOLOv8 / YOLOv5（Conda，Python 3.11）"
 echo "=========================================="
+
+# ---------- 配置开机自启（systemd） ----------
+# 服务器重启后自动启动服务；不使用 systemd 的环境可跳过（失败不影响当前启动）
+SERVICE_NAME="visionlab"
+SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
+SVC_OK=0
+write_service_unit() {
+  printf '%s\n' \
+    "[Unit]" \
+    "Description=VisionLab YOLO Training Manager" \
+    "After=network-online.target" \
+    "Wants=network-online.target" \
+    "" \
+    "[Service]" \
+    "Type=simple" \
+    "WorkingDirectory=$SCRIPT_DIR" \
+    "ExecStart=/bin/bash $SCRIPT_DIR/start.sh" \
+    "Restart=on-failure" \
+    "RestartSec=5" \
+    "" \
+    "[Install]" \
+    "WantedBy=multi-user.target"
+}
+if [ "$(id -u)" -eq 0 ]; then
+  if write_service_unit > "$SERVICE_FILE" 2>/dev/null \
+     && systemctl daemon-reload 2>/dev/null \
+     && systemctl enable "$SERVICE_NAME" >/dev/null 2>&1; then
+    SVC_OK=1
+  fi
+elif command -v sudo &>/dev/null; then
+  if write_service_unit | sudo tee "$SERVICE_FILE" >/dev/null 2>&1 \
+     && sudo systemctl daemon-reload 2>/dev/null \
+     && sudo systemctl enable "$SERVICE_NAME" >/dev/null 2>&1; then
+    SVC_OK=1
+  fi
+fi
+if [ "$SVC_OK" = "1" ]; then
+  echo "  开机自启: 已启用（systemd: ${SERVICE_NAME}.service）"
+  echo "  重启后服务将自动启动；当前会话仍立即启动（见下）。"
+else
+  echo "  [提示] 未配置开机自启（无 systemd 或权限不足）。"
+  echo "         如需重启自动启动，请手动执行："
+  echo "         sudo systemctl enable visionlab"
+fi
+
 START_LOG="$SCRIPT_DIR/visionlab-start.log"
 echo "  正在自动启动服务…"
 nohup bash "$SCRIPT_DIR/start.sh" > "$START_LOG" 2>&1 &
