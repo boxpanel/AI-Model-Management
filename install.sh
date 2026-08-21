@@ -484,7 +484,7 @@ if [ "$DRV_OK" = "1" ]; then
     echo ""
     echo "=========================================="
     echo " NVIDIA 驱动已安装，需要重启才能启用 GPU。"
-    ask_value " 是否现在重启服务器？[y/N] " "N"
+    ask_value " 是否现在重启服务器？[Y/n]（回车默认重启） " "Y"
     case "$ASK_VALUE" in
       y|Y|yes|YES)
         echo " 5 秒后重启服务器…"
