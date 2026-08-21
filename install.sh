@@ -61,14 +61,12 @@ cd "$SCRIPT_DIR"
 SKIP_RKNN=0
 NO_SUDO=0
 DRIVER_AUTO=1
-AUTO_REBOOT=0
 for arg in "$@"; do
   case "$arg" in
     --skip-rknn) SKIP_RKNN=1 ;;
     --no-sudo)   NO_SUDO=1 ;;
     --no-driver) DRIVER_AUTO=0 ;;
-    --auto-reboot) AUTO_REBOOT=1 ;;
-    *) echo "未知参数：$arg（可用：--skip-rknn / --no-sudo / --no-driver / --auto-reboot）" ;;
+    *) echo "未知参数：$arg（可用：--skip-rknn / --no-sudo / --no-driver）" ;;
   esac
 done
 
@@ -442,34 +440,24 @@ fi
 
 # ---------- 安装完成：是否需要重启（最后一个交互询问） ----------
 # 行为明确可预期：仅本次安装了 NVIDIA 驱动才需要重启（重启后驱动加载、systemd 自启生效）；
-# 需要时：--auto-reboot 自动重启 / 默认交互询问；未装驱动则明确提示无需重启。
+# 未装驱动则明确提示无需重启。
 # 先询问再启动服务：选择重启则直接 reboot（重启后由 systemd 自动启动服务），无需重复启动。
 if [ "$DRV_OK" = "1" ]; then
-  if [ "$AUTO_REBOOT" = "1" ]; then
-    echo ""
-    echo "=========================================="
-    echo " NVIDIA 驱动已安装，正在重启服务器…"
-    echo " （重启后系统将自动启动 VisionLab 服务）"
-    echo "=========================================="
-    reboot
-    exit 0
-  else
-    echo ""
-    echo "=========================================="
-    echo " NVIDIA 驱动已安装，需要重启才能启用 GPU。"
-    ask_value " 是否现在重启服务器？[Y/n]（回车默认重启） " "Y"
-    case "$ASK_VALUE" in
-      y|Y|yes|YES)
-        echo " 正在重启服务器…"
-        reboot
-        exit 0
-        ;;
-      *)
-        echo " 已选择稍后重启，继续启动服务（当前以 CPU 模式运行）。"
-        echo " 需要 GPU 训练时请手动执行：sudo reboot"
-        ;;
-    esac
-  fi
+  echo ""
+  echo "=========================================="
+  echo " NVIDIA 驱动已安装，需要重启才能启用 GPU。"
+  ask_value " 是否现在重启服务器？[Y/n]（回车默认重启） " "Y"
+  case "$ASK_VALUE" in
+    y|Y|yes|YES)
+      echo " 正在重启服务器…"
+      reboot
+      exit 0
+      ;;
+    *)
+      echo " 已选择稍后重启，继续启动服务（当前以 CPU 模式运行）。"
+      echo " 需要 GPU 训练时请手动执行：sudo reboot"
+      ;;
+  esac
 else
   echo "无需重启，服务已启动。"
 fi
