@@ -467,23 +467,39 @@ fi
 echo "  启动日志:   $START_LOG"
 echo "=========================================="
 
-# ---------- 自动重启（可选：--auto-reboot） ----------
-# 仅在本次安装成功安装了 NVIDIA 驱动时重启（重启后驱动加载、systemd 自启生效）
-if [ "$AUTO_REBOOT" = "1" ] && [ "$DRV_OK" = "1" ]; then
-  echo ""
-  echo "=========================================="
-  echo " NVIDIA 驱动已安装，10 秒后自动重启服务器…"
-  echo " （重启后系统将自动启动 VisionLab 服务）"
-  echo " 如需取消，请立即按 Ctrl+C"
-  echo "=========================================="
-  sleep 10
-  reboot
-elif [ "$DRV_OK" = "1" ]; then
-  echo ""
-  echo "=========================================="
-  echo " NVIDIA 驱动已安装，重启后生效！"
-  echo " 重启命令: sudo reboot"
-  echo " （重启后系统将自动启动 VisionLab 服务）"
-  echo " 或使用:   bash install.sh --auto-reboot  下次自动重启"
-  echo "=========================================="
+# ---------- 安装完成：是否需要重启 ----------
+# 行为明确可预期：仅本次安装了 NVIDIA 驱动才需要重启（重启后驱动加载、systemd 自启生效）；
+# 需要时：--auto-reboot 自动重启 / 默认交互询问；未装驱动则明确提示无需重启。
+if [ "$DRV_OK" = "1" ]; then
+  if [ "$AUTO_REBOOT" = "1" ]; then
+    echo ""
+    echo "=========================================="
+    echo " NVIDIA 驱动已安装，10 秒后自动重启服务器…"
+    echo " （重启后系统将自动启动 VisionLab 服务）"
+    echo " 如需取消，请立即按 Ctrl+C"
+    echo "=========================================="
+    sleep 10
+    reboot
+  else
+    echo ""
+    echo "=========================================="
+    echo " NVIDIA 驱动已安装，需要重启才能启用 GPU。"
+    ask_value " 是否现在重启服务器？[y/N] " "N"
+    case "$ASK_VALUE" in
+      y|Y|yes|YES)
+        echo " 5 秒后重启服务器…"
+        sleep 5
+        reboot
+        ;;
+      *)
+        echo " 已跳过重启。"
+        echo "  - 服务已启动，当前以 CPU 模式运行"
+        echo "  - 需要 GPU 训练时请手动执行：sudo reboot"
+        echo "  - 重启后 systemd 将自动启动服务并启用 GPU"
+        echo "=========================================="
+        ;;
+    esac
+  fi
+else
+  echo "无需重启，服务已启动。"
 fi
