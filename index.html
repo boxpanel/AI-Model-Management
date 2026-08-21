@@ -92,7 +92,6 @@
             <div><label for="task-name">任务名称</label><input id="task-name" type="text" value="yolo-exp-001" /></div>
             <div><label for="dataset-config">数据集配置文件</label><select id="dataset-config"><option selected>coco8.yaml</option><option>coco128.yaml</option><option>traffic-object-v3.yaml</option><option>custom-data.yaml</option></select></div>
             <div><label>训练设备</label><div id="device-options" class="device-picker"><span class="detect-note">正在检测本机显卡…</span></div><div id="gpu-detect" class="detect-note">正在读取硬件信息</div></div>
-            <div><label for="class-count">类别数量</label><input id="class-count" type="number" value="80" min="1" /></div>
             <div class="full"><label>数据增强</label><div class="switch-row" style="margin-top:0;padding-top:0;border:0"><div><h2 style="font-size:14px">启用默认数据增强</h2><p>Mosaic、翻转和颜色空间增强将按模型预设执行。</p></div><input class="toggle" id="augmentation" type="checkbox" checked /></div></div>
             <div class="full"><label>训练运行环境</label><div class="detect-note">系统会为所选模型自动配置并激活 <code id="training-env-name">YOLOv11</code> Conda 环境。</div></div>
             <div class="full"><div class="switch-row" style="margin-top:0;padding-top:0;border:0"><div><h2 style="font-size:14px">从权重继续训练</h2><p>保留优化器状态和已完成的训练轮次。</p></div><input class="toggle" id="resume" type="checkbox" checked /></div></div>
@@ -773,8 +772,7 @@
       if (!config) return;
       const set = (id, value) => { const el = document.getElementById(id); if (el && value != null && value !== '') el.value = value; };
       set('task-name', config.task_name);
-      if (config.dataset) { document.getElementById('dataset-config').value = config.dataset; updateDatasetSettings(config.dataset); }
-      if (config.class_count) set('class-count', config.class_count);
+      if (config.dataset) { document.getElementById('dataset-config').value = config.dataset; }
       set('epochs', config.epochs); set('batch', config.batch);
       set('lr', config.lr); set('optimizer', config.optimizer);
       set('patience', config.patience); set('workers', config.workers);
@@ -1150,8 +1148,7 @@
     });
     const COCO_NAMES = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'];
     const datasetProfiles = { 'coco8.yaml': { path:'datasets/coco8', split:'4 / 4 / -', classes:'80 类（COCO）', count:80, train:'images/train', val:'images/val', test:'', names:COCO_NAMES, download:'https://ultralytics.com/assets/coco8.zip', labels:'labels/train.cache' }, 'coco128.yaml': { path:'datasets/coco128', split:'128 / 128 / -', classes:'80 类（COCO）', count:80, train:'images/train2017', val:'images/train2017', test:'', names:COCO_NAMES, download:'https://ultralytics.com/assets/coco128.zip', labels:'labels/train.cache' }, 'traffic-object-v3.yaml': { path:'datasets/traffic-object-v3', split:'9,984 / 2,496 / -', classes:'4 类', count:4, train:'images/train', val:'images/val', test:'images/test', names:['person', 'car', 'truck', 'bus'], download:'', labels:'labels/train.cache' }, 'custom-data.yaml': { path:'', split:'请在 YAML 中配置', classes:'自定义类别', count:'', train:'', val:'', test:'', names:[], download:'', labels:'' } };
-    function updateDatasetSettings(value) { const profile=datasetProfiles[value] || datasetProfiles['custom-data.yaml']; if (profile.count) document.getElementById('class-count').value=profile.count; else document.getElementById('class-count').value=''; }
-    document.getElementById('dataset-config').addEventListener('change', event => { updateDatasetSettings(event.target.value); });
+    document.getElementById('dataset-config').addEventListener('change', event => { /* 数据集切换：类别数由数据集 YAML 的 nc 决定 */ });
     async function loadWeightsSelect() {
       const select = document.getElementById('weights-select');
       if (!select) return;
@@ -1346,7 +1343,6 @@
         model_version: document.getElementById('model').value,
         weights_path: document.getElementById('weights-select').value || null,
         dataset: document.getElementById('dataset-config').value,
-        class_count: Number(document.getElementById('class-count').value) || 80,
         device: getSelectedDevices(),
         epochs: Number(document.getElementById('epochs').value) || 100,
         batch: Number(document.getElementById('batch').value) || 8,
