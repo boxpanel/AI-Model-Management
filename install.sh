@@ -14,6 +14,12 @@
 # ============================================================
 set -e
 
+# 兼容所有 locale：强制 C locale，保证 apt-cache policy / conda / lspci 等输出为英文，
+# 避免中文、日文等系统环境下英文关键字解析失败（如 apt 包可用性检测、GPU 检测等）
+export LC_ALL=C
+export LANG=C
+export LANGUAGE=C
+
 # ---------- 自引导：在仓库外执行时，先获取/更新仓库代码 ----------
 SCRIPT_PATH="${BASH_SOURCE[0]:-$0}"
 SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" 2>/dev/null && pwd || pwd)"
