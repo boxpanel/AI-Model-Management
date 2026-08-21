@@ -130,7 +130,7 @@
       </section>
       <section class="view" data-view="environment">
         <header><div><h1>运行环境</h1><p class="subtitle">训练服务运行时依赖与硬件环境检测结果。</p></div><button class="btn" id="refresh-env-btn" type="button">重新检测</button></header>
-        <section class="card"><div class="env-grid"><div class="env-item"><span>Python 版本</span><b id="env-python">--</b></div><div class="env-item"><span>Ultralytics</span><b id="env-ultralytics">--</b></div><div class="env-item"><span>CUDA 版本</span><b id="env-cuda">--</b></div><div class="env-item"><span>GPU 型号</span><b id="env-gpu-count">--</b></div><div class="env-item"><span>Conda 环境</span><b id="env-conda">--</b></div><div class="env-item"><span>环境状态</span><b id="env-ready">--</b></div></div></section>
+        <section class="card"><div class="env-grid"><div class="env-item"><span>Python 版本</span><b id="env-python">--</b></div><div class="env-item"><span>Ultralytics</span><b id="env-ultralytics">--</b></div><div class="env-item"><span>CUDA 版本</span><b id="env-cuda">--</b></div><div class="env-item"><span>GPU 型号</span><b id="env-gpu-count">--</b></div><div class="env-item"><span>核显</span><b id="env-igpu">--</b></div><div class="env-item"><span>Conda 环境</span><b id="env-conda">--</b></div><div class="env-item"><span>环境状态</span><b id="env-ready">--</b></div></div></section>
       </section>
       <section class="view" data-view="settings">
         <header><div><h1>设置</h1><p class="subtitle">全局偏好与训练默认参数配置。</p></div></header>
@@ -418,7 +418,7 @@
         cpuCb.dataset.device = 'cpu';
         cpuLabel.appendChild(cpuCb);
         cpuLabel.appendChild(document.createTextNode('CPU'));
-        if (cpuModel) cpuLabel.appendChild(document.createElement('small')).textContent = short(cpuModel, 28);
+        if (cpuModel) cpuLabel.appendChild(document.createElement('small')).textContent = short(cpuModel, 48);
         container.appendChild(cpuLabel);
         note.textContent = noteText || `检测到 ${gpuCount} 张显卡，可多选启用多卡训练`;
       } else {
@@ -431,7 +431,7 @@
         cpuCb.checked = true;
         cpuLabel.appendChild(cpuCb);
         cpuLabel.appendChild(document.createTextNode('CPU'));
-        if (cpuModel) cpuLabel.appendChild(document.createElement('small')).textContent = short(cpuModel, 28);
+        if (cpuModel) cpuLabel.appendChild(document.createElement('small')).textContent = short(cpuModel, 48);
         container.appendChild(cpuLabel);
         note.textContent = noteText || '未检测到可用 GPU，将使用 CPU 训练';
       }
@@ -464,8 +464,9 @@
     function updateDeviceOptions(env) {
       const gpuCount = Number(env.gpu_count) || (env.cuda_available ? 1 : 0);
       const gpuNames = (env.gpu_names && env.gpu_names.length) ? env.gpu_names : [];
-      // 服务端 cpu_model 未就绪时回退到浏览器核心数，保证 CPU chip 有信息
-      const cpuModel = env.cpu_model || (navigator.hardwareConcurrency ? `${navigator.hardwareConcurrency} 个逻辑核心` : '');
+      // 服务端 cpu_model 未就绪时回退到服务端逻辑核心数（与硬件监控一致，不用浏览器客户端数据）；核显型号一并显示
+      const igpu = env.igpu_model ? `（核显 ${env.igpu_model}）` : '';
+      const cpuModel = (env.cpu_model || (env.cpu_count ? `${env.cpu_count} 个逻辑核心` : '')) + igpu;
       renderDeviceChips(gpuCount, gpuNames, cpuModel, null);
       renderGpuPlaceholders(gpuCount, gpuNames[0] || '');
     }
@@ -802,6 +803,7 @@
         document.getElementById('env-python').textContent = env.python_version || '—';
         document.getElementById('env-ultralytics').textContent = env.ultralytics_available ? '已安装' : '未安装';
         document.getElementById('env-cuda').textContent = env.cuda_version ? 'CUDA ' + env.cuda_version : (env.cuda_available ? '可用' : '不可用');
+        document.getElementById('env-igpu').textContent = env.igpu_model || '—';
         const gpuModels = (env.gpu_names && env.gpu_names.length) ? env.gpu_names : [];
         // 多显卡时每个型号换行显示，避免顿号拼接
         document.getElementById('env-gpu-count').innerHTML = gpuModels.length

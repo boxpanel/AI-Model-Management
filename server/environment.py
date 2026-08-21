@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import platform
+import re
+import subprocess
 import sys
 from typing import Optional
 
@@ -35,7 +37,41 @@ def _cpu_model() -> str:
     return name or platform.machine() or ""
 
 
+def _cpu_count() -> int:
+    """获取服务器逻辑核心数（与硬件监控一致，均为服务端数据）。"""
+    try:
+        import psutil
+
+        return psutil.cpu_count(logical=True) or 0
+    except Exception:
+        return 0
+
+
+def _igpu_model() -> str:
+    """获取核显（集成显卡）型号：通过 lspci 解析非 NVIDIA 的 VGA 设备。"""
+    try:
+        result = subprocess.run(["lspci"], capture_output=True, text=True, timeout=5, check=False)
+        if result.returncode != 0:
+            return ""
+        for line in result.stdout.splitlines():
+            low = line.lower()
+            if "vga" not in low or "nvidia" in low:
+                continue
+            name = line.split("VGA compatible controller:", 1)[-1].strip()
+            name = re.sub(r"\s*\(rev[^)]*\)\s*$", "", name)
+            bracketed = re.search(r"\[([^\]]+)\]", name)
+            if bracketed:
+                return bracketed.group(1).strip()
+            if name:
+                return name
+    except Exception:
+        pass
+    return ""
+
+
 CPU_MODEL = _cpu_model()
+CPU_COUNT = _cpu_count()
+IGPU_MODEL = _igpu_model()
 
 
 def check_ultralytics() -> bool:
@@ -90,6 +126,8 @@ def get_environment(name: str = "YOLOv11", active_conda_env: str = "") -> Enviro
                     gpu_names=gpu_names,
                     gpu_count=gpu_count,
                     cpu_model=CPU_MODEL,
+                    cpu_count=CPU_COUNT,
+                    igpu_model=IGPU_MODEL,
                     message=message,
                     conda_available=conda_available(),
                     conda_env=resolved_env,
@@ -122,6 +160,8 @@ def get_environment(name: str = "YOLOv11", active_conda_env: str = "") -> Enviro
         gpu_names=[gpu_name] if gpu_name else [],
         gpu_count=gpu_count,
         cpu_model=CPU_MODEL,
+        cpu_count=CPU_COUNT,
+        igpu_model=IGPU_MODEL,
         message=message,
         conda_available=conda_available(),
         conda_env=resolved_env or "",
