@@ -104,8 +104,8 @@ def _read_disk() -> dict[str, Any]:
                     "partitions": partitions,
                 }
             )
-    except ImportError:
-        pass
+    except Exception:
+        return disk
     return disk
 
 
