@@ -117,7 +117,10 @@ def get_hardware_metrics() -> dict[str, Any]:
     try:
         import psutil
 
-        cpu_percent = psutil.cpu_percent(interval=0.1)
+        try:
+            cpu_percent = psutil.cpu_percent(interval=0.1)
+        except Exception:
+            cpu_percent = psutil.cpu_percent()
         vm = psutil.virtual_memory()
         memory = {
             "percent": vm.percent,
@@ -125,13 +128,18 @@ def get_hardware_metrics() -> dict[str, Any]:
             "totalGB": round(vm.total / (1024**3), 1),
         }
         cpu_model = f"{psutil.cpu_count(logical=True) or '?'} 个逻辑核心"
-    except ImportError:
+    except Exception:
         pass
+
+    try:
+        disk = _read_disk()
+    except Exception:
+        disk = {}
 
     gpus = _read_pynvml() or _read_nvidia_smi()
     return {
         "cpu": {"percent": cpu_percent, "model": cpu_model},
         "memory": memory,
-        "disk": _read_disk(),
+        "disk": disk,
         "gpu": gpus,
     }

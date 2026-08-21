@@ -819,7 +819,14 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
     async def pump_hardware() -> None:
         while True:
             await asyncio.sleep(2)
-            await websocket.send_json({"type": "hardware", "data": get_hardware_metrics()})
+            try:
+                metrics = get_hardware_metrics()
+            except Exception:
+                continue  # 单次指标异常不中断推送
+            try:
+                await websocket.send_json({"type": "hardware", "data": metrics})
+            except Exception:
+                break  # 连接已断开
 
     tasks = [
         asyncio.create_task(pump_events()),

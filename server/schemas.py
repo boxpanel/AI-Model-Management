@@ -64,6 +64,7 @@ class EnvironmentResponse(BaseModel):
     gpu_name: Optional[str] = None
     gpu_names: list[str] = Field(default_factory=list)
     gpu_count: int = 0
+    cpu_model: str = ""
     message: str = ""
     conda_available: bool = False
     conda_env: str = ""

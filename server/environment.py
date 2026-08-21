@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import platform
 import sys
 from typing import Optional
 
@@ -18,6 +19,23 @@ MODEL_WEIGHTS = {
     "YOLOv8": "yolov8n.pt",
     "YOLOv5": "yolov5nu.pt",
 }
+
+def _cpu_model() -> str:
+    """获取 CPU 型号：优先 /proc/cpuinfo 的 model name（Linux 下 platform.processor 常为空）。"""
+    name = platform.processor() or ""
+    if not name:
+        try:
+            with open("/proc/cpuinfo", "r", encoding="utf-8", errors="ignore") as f:
+                for line in f:
+                    if line.lower().startswith("model name"):
+                        name = line.split(":", 1)[1].strip()
+                        break
+        except OSError:
+            pass
+    return name or platform.machine() or ""
+
+
+CPU_MODEL = _cpu_model()
 
 
 def check_ultralytics() -> bool:
@@ -71,6 +89,7 @@ def get_environment(name: str = "YOLOv11", active_conda_env: str = "") -> Enviro
                     gpu_name=gpu_name,
                     gpu_names=gpu_names,
                     gpu_count=gpu_count,
+                    cpu_model=CPU_MODEL,
                     message=message,
                     conda_available=conda_available(),
                     conda_env=resolved_env,
@@ -102,6 +121,7 @@ def get_environment(name: str = "YOLOv11", active_conda_env: str = "") -> Enviro
         gpu_name=gpu_name,
         gpu_names=[gpu_name] if gpu_name else [],
         gpu_count=gpu_count,
+        cpu_model=CPU_MODEL,
         message=message,
         conda_available=conda_available(),
         conda_env=resolved_env or "",

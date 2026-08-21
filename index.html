@@ -390,8 +390,10 @@
       }
     }
 
-    function renderDeviceChips(gpuCount, gpuName, noteText) {
+    function renderDeviceChips(gpuCount, gpuNames, cpuModel, noteText) {
       const container = document.getElementById('device-options'), note = document.getElementById('gpu-detect');
+      const nameList = Array.isArray(gpuNames) ? gpuNames : [];
+      const short = (name, max) => (name && name.length > max ? name.slice(0, max - 1) + '…' : name || '');
       container.innerHTML = '';
       if (gpuCount > 0) {
         for (let i = 0; i < gpuCount; i++) {
@@ -403,10 +405,9 @@
           cb.dataset.device = 'gpu';
           if (i === 0) cb.checked = true;
           label.appendChild(cb);
-          const name = i === 0 && gpuName ? gpuName : `GPU ${i}`;
-          const short = name.length > 30 ? name.slice(0, 29) + '…' : name;
           label.appendChild(document.createTextNode(`GPU ${i} `));
-          label.appendChild(document.createElement('small')).textContent = short;
+          const name = short(nameList[i], 28);
+          if (name) label.appendChild(document.createElement('small')).textContent = name;
           container.appendChild(label);
         }
         const cpuLabel = document.createElement('label');
@@ -417,6 +418,7 @@
         cpuCb.dataset.device = 'cpu';
         cpuLabel.appendChild(cpuCb);
         cpuLabel.appendChild(document.createTextNode('CPU'));
+        if (cpuModel) cpuLabel.appendChild(document.createElement('small')).textContent = short(cpuModel, 28);
         container.appendChild(cpuLabel);
         note.textContent = noteText || `检测到 ${gpuCount} 张显卡，可多选启用多卡训练`;
       } else {
@@ -429,6 +431,7 @@
         cpuCb.checked = true;
         cpuLabel.appendChild(cpuCb);
         cpuLabel.appendChild(document.createTextNode('CPU'));
+        if (cpuModel) cpuLabel.appendChild(document.createElement('small')).textContent = short(cpuModel, 28);
         container.appendChild(cpuLabel);
         note.textContent = noteText || '未检测到可用 GPU，将使用 CPU 训练';
       }
@@ -456,12 +459,14 @@
 
     function updateDeviceOptions(env) {
       const gpuCount = Number(env.gpu_count) || (env.cuda_available ? 1 : 0);
-      const gpuName = env.gpu_name || '';
-      renderDeviceChips(gpuCount, gpuName, null);
-      renderGpuPlaceholders(gpuCount, gpuName);
+      const gpuNames = (env.gpu_names && env.gpu_names.length) ? env.gpu_names : [];
+      renderDeviceChips(gpuCount, gpuNames, env.cpu_model, null);
+      renderGpuPlaceholders(gpuCount, gpuNames[0] || '');
     }
 
     function detectGpuFallback() {
+      const cores = navigator.hardwareConcurrency;
+      const coresText = cores ? `${cores} 个逻辑核心` : '';
       let renderer = '';
       try {
         const canvas = document.createElement('canvas'), gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
@@ -469,13 +474,12 @@
         renderer = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : '';
       } catch (_) {}
       if (renderer) {
-        renderDeviceChips(1, renderer, '浏览器识别到显卡，训练仍以服务端检测结果为准');
+        renderDeviceChips(1, [renderer], coresText, '浏览器识别到显卡，训练仍以服务端检测结果为准');
         renderGpuPlaceholders(1, renderer);
       } else {
-        renderDeviceChips(0, '', '浏览器未提供显卡型号；可手动选择设备');
+        renderDeviceChips(0, [], coresText, '浏览器未提供显卡型号；可手动选择设备');
         renderGpuPlaceholders(0, '');
       }
-      const cores = navigator.hardwareConcurrency;
       document.getElementById('cpu-model').textContent = cores ? `${cores} 个逻辑核心` : 'CPU 核心数不可用';
       const memory = navigator.deviceMemory;
       document.getElementById('ram-model').textContent = memory ? `约 ${memory} GB 系统内存` : '内存容量不可用';
@@ -521,13 +525,15 @@
       if (Number.isFinite(cpu.percent)) { setGauge('cpu', cpu.percent); document.getElementById('cpu-usage').textContent = `当前使用率 ${cpu.percent.toFixed(1)}%`; if (cpu.model) document.getElementById('cpu-model').textContent = cpu.model; }
       if (Number.isFinite(memory.percent)) { setGauge('ram', memory.percent); document.getElementById('ram-usage').textContent = memory.usedGB != null && memory.totalGB != null ? `${memory.usedGB.toFixed(1)} / ${memory.totalGB.toFixed(1)} GB` : `当前使用率 ${memory.percent.toFixed(1)}%`; if (memory.totalGB) document.getElementById('ram-model').textContent = `约 ${memory.totalGB.toFixed(1)} GB 系统内存`; }
       if (Number.isFinite(disk.percent)) {
-        setGauge('disk', disk.percent);
-        document.getElementById('disk-usage').textContent = disk.usedGB != null && disk.totalGB != null ? `${disk.usedGB.toFixed(1)} / ${disk.totalGB.toFixed(1)} GB` : `当前使用率 ${disk.percent.toFixed(1)}%`;
-        if (disk.mount) {
-          const count = (Array.isArray(disk.partitions) && disk.partitions.length) || 0;
-          document.getElementById('disk-model').textContent = `${disk.mount}${count > 1 ? ` 等 ${count} 个分区` : ''}`;
+          setGauge('disk', disk.percent);
+          document.getElementById('disk-usage').textContent = disk.usedGB != null && disk.totalGB != null ? `${disk.usedGB.toFixed(1)} / ${disk.totalGB.toFixed(1)} GB` : `当前使用率 ${disk.percent.toFixed(1)}%`;
+          if (disk.mount) {
+            const count = (Array.isArray(disk.partitions) && disk.partitions.length) || 0;
+            document.getElementById('disk-model').textContent = `${disk.mount}${count > 1 ? ` 等 ${count} 个分区` : ''}`;
+          } else {
+            document.getElementById('disk-model').textContent = '未检测到磁盘信息';
+          }
         }
-      }
       renderGpuGauges(gpus);
       document.getElementById('hardware-status').textContent = backendOnline ? '实时监控中' : '等待本地训练服务';
       document.getElementById('hardware-source').textContent = backendOnline ? `最新数据：${new Date().toLocaleTimeString('zh-CN', { hour12:false })}` : '启动 ./start.sh 后可上报实时使用率';
@@ -791,8 +797,9 @@
         document.getElementById('env-ultralytics').textContent = env.ultralytics_available ? '已安装' : '未安装';
         document.getElementById('env-cuda').textContent = env.cuda_version ? 'CUDA ' + env.cuda_version : (env.cuda_available ? '可用' : '不可用');
         const gpuModels = (env.gpu_names && env.gpu_names.length) ? env.gpu_names : [];
-        document.getElementById('env-gpu-count').textContent = gpuModels.length
-          ? gpuModels.join('、')
+        // 多显卡时每个型号换行显示，避免顿号拼接
+        document.getElementById('env-gpu-count').innerHTML = gpuModels.length
+          ? gpuModels.join('<br>')
           : (env.gpu_count ? env.gpu_count + ' 张' : '0 张');
         document.getElementById('env-conda').textContent = env.conda_env || (env.conda_available ? '已检测到 Conda（未匹配模型环境）' : '未检测到 Conda');
         document.getElementById('env-ready').textContent = env.ready ? '已就绪' : '未就绪';
