@@ -23,6 +23,26 @@ if [ ! -f "$SCRIPT_DIR/requirements.txt" ]; then
     echo "[引导] 检测到已存在的仓库 $REPO_DIR，正在拉取最新代码…"
     git -C "$REPO_DIR" pull --ff-only
   else
+    # 引导克隆依赖 git：缺失时自动安装（root 直接装，非 root 尝试 sudo）
+    if ! command -v git &>/dev/null; then
+      echo "[引导] 未检测到 git，正在自动安装…"
+      GIT_INSTALL_OK=0
+      if command -v apt-get &>/dev/null; then
+        if [ "$(id -u)" -eq 0 ]; then apt-get update -y && apt-get install -y git && GIT_INSTALL_OK=1
+        elif command -v sudo &>/dev/null; then sudo apt-get update -y && sudo apt-get install -y git && GIT_INSTALL_OK=1
+        fi
+      elif command -v dnf &>/dev/null; then
+        if [ "$(id -u)" -eq 0 ]; then dnf install -y git && GIT_INSTALL_OK=1
+        elif command -v sudo &>/dev/null; then sudo dnf install -y git && GIT_INSTALL_OK=1
+        fi
+      fi
+      if [ "$GIT_INSTALL_OK" != "1" ]; then
+        echo "[引导][错误] git 自动安装失败，请先手动安装后重新执行："
+        echo "  sudo apt-get update -y && sudo apt-get install -y git"
+        exit 1
+      fi
+      echo "[引导] git 安装完成"
+    fi
     echo "[引导] 正在克隆仓库到 $REPO_DIR …"
     mkdir -p "$(dirname "$REPO_DIR")"
     git clone https://github.com/boxpanel/AI-Model-Management.git "$REPO_DIR"
