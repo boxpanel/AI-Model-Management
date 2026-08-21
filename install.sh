@@ -188,9 +188,20 @@ done
 # 使用 venv 避免 Ubuntu 24.04+（PEP 668）禁止系统级 pip 安装的问题
 echo "[5/6] 创建 Web 服务虚拟环境并安装服务依赖…"
 VENV_PY="$SCRIPT_DIR/venv/bin/python"
-if [ ! -x "$VENV_PY" ]; then
+# venv 缺失或无 pip 时重建（兼容之前失败残留的残缺环境、python3-venv 缺失等情况）
+if [ ! -x "$VENV_PY" ] || ! "$VENV_PY" -m pip --version >/dev/null 2>&1; then
+  echo "  创建虚拟环境（已清理旧的残缺环境）…"
+  rm -rf "$SCRIPT_DIR/venv"
   python3 -m venv "$SCRIPT_DIR/venv" || {
     echo "[错误] 创建虚拟环境失败，请确认已安装 python3-venv：sudo apt install -y python3-venv"
+    exit 1
+  }
+fi
+# 兜底：venv 仍无 pip（如 ensurepip 未随 venv 生成）时用 ensurepip 安装
+if ! "$VENV_PY" -m pip --version >/dev/null 2>&1; then
+  echo "  虚拟环境缺少 pip，正在通过 ensurepip 安装…"
+  "$VENV_PY" -m ensurepip --upgrade || {
+    echo "[错误] venv 缺少 pip，请先安装系统 python3-venv 后重试：sudo apt install -y python3-venv"
     exit 1
   }
 fi
