@@ -272,9 +272,21 @@ if command -v lspci &>/dev/null; then
   fi
 fi
 
+# 按显卡品牌判断驱动是否就绪（NVIDIA 必须 nvidia-smi 可用；
+# 不能因为 Intel 集显的 i915 模块存在就误判 NVIDIA 独立显卡已装驱动）
 DRIVER_READY=0
-if command -v nvidia-smi &>/dev/null; then DRIVER_READY=1
-elif lsmod 2>/dev/null | grep -qE "amdgpu|i915"; then DRIVER_READY=1
+if [ -n "$GPU_VENDOR" ]; then
+  case "$GPU_VENDOR" in
+    nvidia)
+      if command -v nvidia-smi &>/dev/null && nvidia-smi &>/dev/null; then DRIVER_READY=1; fi
+      ;;
+    amd)
+      lsmod 2>/dev/null | grep -q amdgpu && DRIVER_READY=1
+      ;;
+    intel)
+      lsmod 2>/dev/null | grep -q i915 && DRIVER_READY=1
+      ;;
+  esac
 fi
 
 if [ "$DRIVER_READY" = "1" ]; then
