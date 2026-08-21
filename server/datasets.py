@@ -57,6 +57,9 @@ BUILTIN_DATASETS = [
     },
 ]
 
+# 内置预设：不允许删除，只能修改（含前端固定预设 traffic-object-v3.yaml）
+BUILTIN_PRESET_NAMES = {item["name"] for item in BUILTIN_DATASETS} | {"traffic-object-v3.yaml"}
+
 
 class DatasetService:
     def __init__(self, base_dir: Path, db: Database, datasets_dir: Path | None = None) -> None:
@@ -246,10 +249,13 @@ class DatasetService:
         return {"name": name, "yaml_path": rel}
 
     def delete_yaml(self, name: str) -> dict[str, Any]:
+        # 内置预设（coco8/coco128/traffic-object-v3）不允许删除，只能修改
+        if name in BUILTIN_PRESET_NAMES:
+            raise ValueError("内置数据集不能删除，只能修改")
         removed_file = False
         target = self.datasets_dir / name
         if target.exists():
             target.unlink()
             removed_file = True
         self.db.delete_dataset(name)
-        return {"removed_file": removed_file, "builtin": name in {item["name"] for item in BUILTIN_DATASETS}}
+        return {"removed_file": removed_file, "builtin": False}

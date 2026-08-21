@@ -503,7 +503,10 @@ async def dataset_delete(name: str) -> dict[str, Any]:
         name = f"{name}.yaml"
     if "/" in name or "\\" in name or name in {"..", "."}:
         raise HTTPException(status_code=400, detail="非法名称")
-    result = dataset_service.delete_yaml(name)
+    try:
+        result = dataset_service.delete_yaml(name)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {"ok": True, **result}
 
 

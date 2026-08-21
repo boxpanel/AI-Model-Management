@@ -625,13 +625,16 @@
           const div = document.createElement('div'); div.className = 'list-item';
           div.style.cursor = 'pointer';
           div.title = '双击编辑';
-          div.innerHTML = '<h3>' + item.name + '</h3><p>' + (item.root_path || item.path || '未设置路径') + '</p><div class="meta"><span>' + (item.split || '—') + '</span><span class="badge ' + (item.builtin ? 'builtin' : 'custom') + '">' + (item.builtin ? '内置' : '自定义') + '</span></div><div class="item-actions"><button class="btn-link danger" data-ds-del="' + item.name + '">删除</button></div>';
+          const actionBtn = item.builtin
+            ? '<button class="btn-link" data-ds-edit="' + item.name + '">修改</button>'
+            : '<button class="btn-link danger" data-ds-del="' + item.name + '">删除</button>';
+          div.innerHTML = '<h3>' + item.name + '</h3><p>' + (item.root_path || item.path || '未设置路径') + '</p><div class="meta"><span>' + (item.split || '—') + '</span><span class="badge ' + (item.builtin ? 'builtin' : 'custom') + '">' + (item.builtin ? '内置' : '自定义') + '</span></div><div class="item-actions">' + actionBtn + '</div>';
           div.addEventListener('dblclick', () => openDatasetModal('edit', item));
-          const delBtn = div.querySelector('[data-ds-del]');
-          delBtn.addEventListener('click', async event => {
+          const actBtn = div.querySelector('[data-ds-del], [data-ds-edit]');
+          actBtn.addEventListener('click', async event => {
             event.stopPropagation();
-            const hint = item.builtin ? '（内置数据集将恢复默认配置）' : '';
-            if (!confirm('确定删除数据集「' + item.name + '」？' + hint)) return;
+            if (item.builtin) { openDatasetModal('edit', item); return; }
+            if (!confirm('确定删除数据集「' + item.name + '」？')) return;
             try {
               const result = await api('/api/datasets?name=' + encodeURIComponent(item.name), { method: 'DELETE' });
               if (result.ok) { showToast('数据集已删除：' + item.name); loadDatasets(); }
@@ -648,12 +651,11 @@
           div.style.cursor = 'pointer';
           div.title = '双击编辑';
           const item = { name, root_path: profile.path, class_count: profile.count, train: profile.train, val: profile.val, test: profile.test, names: profile.names, download: profile.download };
-          div.innerHTML = '<h3>' + name + '</h3><p>' + profile.path + '</p><div class="meta"><span>' + profile.split + '</span><span class="badge ' + (name === 'traffic-object-v3.yaml' ? 'custom' : 'builtin') + '">' + (name === 'traffic-object-v3.yaml' ? '自定义' : '内置') + '</span></div><div class="item-actions"><button class="btn-link danger" data-ds-del="' + name + '">删除</button></div>';
+          div.innerHTML = '<h3>' + name + '</h3><p>' + profile.path + '</p><div class="meta"><span>' + profile.split + '</span><span class="badge ' + (name === 'traffic-object-v3.yaml' ? 'custom' : 'builtin') + '">' + (name === 'traffic-object-v3.yaml' ? '自定义' : '内置') + '</span></div><div class="item-actions"><button class="btn-link" data-ds-edit="' + name + '">修改</button></div>';
           div.addEventListener('dblclick', () => openDatasetModal('edit', item));
-          const delBtn = div.querySelector('[data-ds-del]');
-          delBtn.addEventListener('click', event => {
+          div.querySelector('[data-ds-edit]').addEventListener('click', event => {
             event.stopPropagation();
-            showToast('服务未连接，无法删除');
+            openDatasetModal('edit', item);
           });
           box.appendChild(div);
         });
