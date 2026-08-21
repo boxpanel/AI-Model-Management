@@ -206,7 +206,8 @@ def main() -> int:
             lr0=config.get("lr", 0.01),
             optimizer=config.get("optimizer", "auto"),
             patience=config.get("patience", 100),
-            workers=config.get("workers", 8),
+            # 数据加载线程自动适配 CPU 逻辑核心数（不要求用户填写）
+            workers=config.get("workers") or (os.cpu_count() or 8),
             cache=cache_value,
             device=_resolve_device(config.get("device", "0")),
             project=config.get("project_dir") or str(base_dir / "runs"),
