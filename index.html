@@ -438,10 +438,14 @@
       container.querySelectorAll('input[type="checkbox"]').forEach(cb => {
         cb.addEventListener('change', () => {
           const isCpu = cb.dataset.device === 'cpu';
-          container.querySelectorAll('input[type="checkbox"]').forEach(other => {
-            if (other !== cb) other.checked = false;
-          });
-          if (isCpu && !cb.checked) cb.checked = true;
+          if (isCpu) {
+            // 选中 CPU：取消全部 GPU（GPU 之间保持多选，CPU 与 GPU 互斥）
+            container.querySelectorAll('input[data-device="gpu"]').forEach(g => { g.checked = false; });
+            if (!cb.checked) cb.checked = true;
+          } else if (cb.checked) {
+            // 选中 GPU：取消 CPU，允许继续勾选其他 GPU 实现多卡训练
+            container.querySelectorAll('input[data-device="cpu"]').forEach(c => { c.checked = false; });
+          }
           container.querySelectorAll('label.device-chip').forEach(label => {
             label.classList.toggle('on', !!label.querySelector('input:checked'));
           });
@@ -460,7 +464,9 @@
     function updateDeviceOptions(env) {
       const gpuCount = Number(env.gpu_count) || (env.cuda_available ? 1 : 0);
       const gpuNames = (env.gpu_names && env.gpu_names.length) ? env.gpu_names : [];
-      renderDeviceChips(gpuCount, gpuNames, env.cpu_model, null);
+      // 服务端 cpu_model 未就绪时回退到浏览器核心数，保证 CPU chip 有信息
+      const cpuModel = env.cpu_model || (navigator.hardwareConcurrency ? `${navigator.hardwareConcurrency} 个逻辑核心` : '');
+      renderDeviceChips(gpuCount, gpuNames, cpuModel, null);
       renderGpuPlaceholders(gpuCount, gpuNames[0] || '');
     }
 
