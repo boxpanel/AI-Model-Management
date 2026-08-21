@@ -11,6 +11,23 @@ from .database import Database
 # 数据集 YAML 的标准键（ultralytics 官方），其余键作为高级参数保留
 _STANDARD_KEYS = {"path", "train", "val", "test", "names", "nc", "download", "kpt_shape", "flip_idx"}
 
+# COCO 80 类（ultralytics 官方顺序），用于自动生成 coco8/coco128 内置预设 yaml
+COCO_NAMES = [
+    "person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat",
+    "traffic light", "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat",
+    "dog", "horse", "sheep", "cow", "elephant", "bear", "zebra", "giraffe", "backpack",
+    "umbrella", "handbag", "tie", "suitcase", "frisbee", "skis", "snowboard", "sports ball",
+    "kite", "baseball bat", "baseball glove", "skateboard", "surfboard", "tennis racket",
+    "bottle", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple",
+    "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair",
+    "couch", "potted plant", "bed", "dining table", "toilet", "tv", "laptop", "mouse",
+    "remote", "keyboard", "cell phone", "microwave", "oven", "toaster", "sink", "refrigerator",
+    "book", "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush",
+]
+
+# 前端固定预设 traffic-object-v3 的类别
+TRAFFIC_NAMES = ["person", "car", "truck", "bus"]
+
 BUILTIN_DATASETS = [
     {
         "name": "coco8.yaml",
@@ -47,6 +64,34 @@ class DatasetService:
         self.datasets_dir = (datasets_dir or (base_dir / "datasets")).resolve()
         self.datasets_dir.mkdir(parents=True, exist_ok=True)
         self.db = db
+        self._ensure_builtin_yamls()
+
+    def _ensure_builtin_yamls(self) -> None:
+        """启动时自动生成内置预设 yaml（缺失时），保证前端预设选中后即可直接训练。"""
+        presets = [
+            ("coco8.yaml", "coco8", "images/train", "images/val", "", 80, COCO_NAMES, "https://ultralytics.com/assets/coco8.zip"),
+            ("coco128.yaml", "coco128", "images/train2017", "images/train2017", "", 80, COCO_NAMES, "https://ultralytics.com/assets/coco128.zip"),
+            ("traffic-object-v3.yaml", "traffic-object-v3", "images/train", "images/val", "images/test", 4, TRAFFIC_NAMES, ""),
+        ]
+        for name, data_dir, train, val, test, nc, names, download in presets:
+            target = self.datasets_dir / name
+            if target.exists():
+                continue
+            payload = {
+                # path 用绝对路径，避免 ultralytics 按 yaml 所在目录解析相对路径时定位错误
+                "path": str(self.datasets_dir / data_dir),
+                "train": train,
+                "val": val,
+                "test": test,
+                "nc": nc,
+                "names": names,
+            }
+            if download:
+                payload["download"] = download
+            try:
+                target.write_text(yaml.safe_dump(payload, allow_unicode=True, sort_keys=False), encoding="utf-8")
+            except OSError:
+                pass
 
     def list_all(self) -> list[dict[str, Any]]:
         items: list[dict[str, Any]] = []

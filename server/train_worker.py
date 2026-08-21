@@ -130,9 +130,18 @@ def main() -> int:
                 yaml_candidate = base_candidate / data_yaml
                 break
     if not yaml_candidate.exists():
-        emit_log(f"数据集配置文件不存在：{data_yaml}", "error")
-        state.update(state="error", message=f"数据集配置文件不存在：{data_yaml}")
-        return 1
+        # 回退：使用 ultralytics 包自带的示例配置（coco8.yaml / coco128.yaml 等）
+        try:
+            builtin = Path(ultralytics.__file__).resolve().parent / "cfg" / "datasets" / data_yaml
+        except NameError:
+            builtin = Path()
+        if builtin.exists():
+            emit_log(f"本地未找到数据集配置，回退使用 ultralytics 内置配置：{builtin}", "info")
+            yaml_candidate = builtin
+        else:
+            emit_log(f"数据集配置文件不存在：{data_yaml}", "error")
+            state.update(state="error", message=f"数据集配置文件不存在：{data_yaml}")
+            return 1
     data_yaml = str(yaml_candidate)
 
     cache_map = {"关闭": False, "RAM": "ram", "磁盘": "disk", "false": False, "ram": "ram", "disk": "disk"}
