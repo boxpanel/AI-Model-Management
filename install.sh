@@ -55,12 +55,14 @@ cd "$SCRIPT_DIR"
 SKIP_RKNN=0
 NO_SUDO=0
 DRIVER_AUTO=1
+AUTO_REBOOT=0
 for arg in "$@"; do
   case "$arg" in
     --skip-rknn) SKIP_RKNN=1 ;;
     --no-sudo)   NO_SUDO=1 ;;
     --no-driver) DRIVER_AUTO=0 ;;
-    *) echo "未知参数：$arg（可用：--skip-rknn / --no-sudo / --no-driver）" ;;
+    --auto-reboot) AUTO_REBOOT=1 ;;
+    *) echo "未知参数：$arg（可用：--skip-rknn / --no-sudo / --no-driver / --auto-reboot）" ;;
   esac
 done
 
@@ -436,3 +438,24 @@ if [ "$START_OK" = "0" ]; then
 fi
 echo "  启动日志:   $START_LOG"
 echo "=========================================="
+
+# ---------- 自动重启（可选：--auto-reboot） ----------
+# 仅在本次安装成功安装了 NVIDIA 驱动时重启（重启后驱动加载、systemd 自启生效）
+if [ "$AUTO_REBOOT" = "1" ] && [ "$DRV_OK" = "1" ]; then
+  echo ""
+  echo "=========================================="
+  echo " NVIDIA 驱动已安装，10 秒后自动重启服务器…"
+  echo " （重启后系统将自动启动 VisionLab 服务）"
+  echo " 如需取消，请立即按 Ctrl+C"
+  echo "=========================================="
+  sleep 10
+  reboot
+elif [ "$DRV_OK" = "1" ]; then
+  echo ""
+  echo "=========================================="
+  echo " NVIDIA 驱动已安装，重启后生效！"
+  echo " 重启命令: sudo reboot"
+  echo " （重启后系统将自动启动 VisionLab 服务）"
+  echo " 或使用:   bash install.sh --auto-reboot  下次自动重启"
+  echo "=========================================="
+fi
