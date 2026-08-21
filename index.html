@@ -483,9 +483,9 @@
       // 服务端 cpu_model 未就绪时回退到服务端逻辑核心数（与硬件监控一致，不用浏览器客户端数据）；核显型号一并显示
       const igpu = env.igpu_model ? `（核显 ${env.igpu_model}）` : '';
       const cpuModel = (env.cpu_model || (env.cpu_count ? `${env.cpu_count} 个逻辑核心` : '')) + igpu;
-      // 数据加载线程自动适配 CPU 核数（无需人为填写）
+      // 数据加载线程自动适配 CPU 核数，直接显示实际使用的线程数（无需人为填写）
       const workersEl = document.getElementById('workers');
-      if (workersEl) workersEl.value = `自动适配 CPU（${env.cpu_count || '?'} 核）`;
+      if (workersEl) workersEl.value = '使用 ' + (env.cpu_count || '?') + ' 个线程';
       renderDeviceChips(gpuCount, gpuNames, cpuModel, null);
       renderGpuPlaceholders(gpuCount, gpuNames[0] || '');
       updateEstimate();
