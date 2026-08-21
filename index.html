@@ -626,14 +626,13 @@
           div.style.cursor = 'pointer';
           div.title = '双击编辑';
           const actionBtn = item.builtin
-            ? '<button class="btn-link" data-ds-edit="' + item.name + '">修改</button>'
+            ? ''
             : '<button class="btn-link danger" data-ds-del="' + item.name + '">删除</button>';
           div.innerHTML = '<h3>' + item.name + '</h3><p>' + (item.root_path || item.path || '未设置路径') + '</p><div class="meta"><span>' + (item.split || '—') + '</span><span class="badge ' + (item.builtin ? 'builtin' : 'custom') + '">' + (item.builtin ? '内置' : '自定义') + '</span></div><div class="item-actions">' + actionBtn + '</div>';
           div.addEventListener('dblclick', () => openDatasetModal('edit', item));
-          const actBtn = div.querySelector('[data-ds-del], [data-ds-edit]');
-          actBtn.addEventListener('click', async event => {
+          const actBtn = div.querySelector('[data-ds-del]');
+          if (actBtn) actBtn.addEventListener('click', async event => {
             event.stopPropagation();
-            if (item.builtin) { openDatasetModal('edit', item); return; }
             if (!confirm('确定删除数据集「' + item.name + '」？')) return;
             try {
               const result = await api('/api/datasets?name=' + encodeURIComponent(item.name), { method: 'DELETE' });
@@ -651,12 +650,8 @@
           div.style.cursor = 'pointer';
           div.title = '双击编辑';
           const item = { name, root_path: profile.path, class_count: profile.count, train: profile.train, val: profile.val, test: profile.test, names: profile.names, download: profile.download };
-          div.innerHTML = '<h3>' + name + '</h3><p>' + profile.path + '</p><div class="meta"><span>' + profile.split + '</span><span class="badge ' + (name === 'traffic-object-v3.yaml' ? 'custom' : 'builtin') + '">' + (name === 'traffic-object-v3.yaml' ? '自定义' : '内置') + '</span></div><div class="item-actions"><button class="btn-link" data-ds-edit="' + name + '">修改</button></div>';
+          div.innerHTML = '<h3>' + name + '</h3><p>' + profile.path + '</p><div class="meta"><span>' + profile.split + '</span><span class="badge ' + (name === 'traffic-object-v3.yaml' ? 'custom' : 'builtin') + '">' + (name === 'traffic-object-v3.yaml' ? '自定义' : '内置') + '</span></div><div class="item-actions"></div>';
           div.addEventListener('dblclick', () => openDatasetModal('edit', item));
-          div.querySelector('[data-ds-edit]').addEventListener('click', event => {
-            event.stopPropagation();
-            openDatasetModal('edit', item);
-          });
           box.appendChild(div);
         });
       }
