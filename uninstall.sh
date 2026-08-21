@@ -42,6 +42,8 @@ if [ -f "/etc/systemd/system/visionlab.service" ]; then
   $UNINSTALL_SUDO rm -f /etc/systemd/system/visionlab.service
   $UNINSTALL_SUDO systemctl daemon-reload 2>/dev/null || true
 fi
+# 移除全局启动命令软链接
+$UNINSTALL_SUDO rm -f /usr/local/bin/visionlab /usr/local/bin/visionlab-stop 2>/dev/null || true
 
 echo "[2/3] 删除程序文件…"
 rm -rf "$SCRIPT_DIR/venv"

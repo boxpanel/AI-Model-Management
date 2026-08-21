@@ -373,8 +373,8 @@ echo "  （请登录后立即在「设置」页修改密码）"
 echo ""
 echo "  仓库目录:   $SCRIPT_DIR"
 echo ""
-echo "  启动服务:   cd \"$SCRIPT_DIR\" && ./start.sh"
-echo "  停止服务:   cd \"$SCRIPT_DIR\" && ./stop.sh"
+echo "  启动服务:   visionlab（任意目录）或 cd \"$SCRIPT_DIR\" && ./start.sh"
+echo "  停止服务:   visionlab-stop 或 cd \"$SCRIPT_DIR\" && ./stop.sh"
 echo "  删除程序:   cd \"$SCRIPT_DIR\" && ./uninstall.sh"
 echo "  开发模式:   cd \"$SCRIPT_DIR\" && ./start.sh --dev"
 if [ "$SERVER_PORT" -lt 1024 ] && [ "$(id -u)" -ne 0 ]; then
@@ -428,6 +428,14 @@ else
   echo "  [提示] 未配置开机自启（无 systemd 或权限不足）。"
   echo "         如需重启自动启动，请手动执行："
   echo "         sudo systemctl enable visionlab"
+fi
+
+# ---------- 创建全局启动命令（任意目录可用） ----------
+# 解决用户在非仓库目录执行 ./start.sh 时报"没有那个文件或目录"的问题
+if [ "$(id -u)" -eq 0 ]; then
+  ln -sf "$SCRIPT_DIR/start.sh" /usr/local/bin/visionlab 2>/dev/null \
+    && echo "  全局命令: visionlab（任意目录均可启动服务）"
+  ln -sf "$SCRIPT_DIR/stop.sh" /usr/local/bin/visionlab-stop 2>/dev/null
 fi
 
 START_LOG="$SCRIPT_DIR/visionlab-start.log"
