@@ -87,6 +87,9 @@ class DatasetCreateRequest(BaseModel):
 class SettingsUpdateRequest(BaseModel):
     max_parallel_jobs: Optional[int] = None
     active_conda_env: Optional[str] = None
+    runs_dir: Optional[str] = None  # 训练输出目录（权重结果）
+    datasets_cfg_dir: Optional[str] = None  # 数据集配置文件（yaml）目录
+    datasets_data_dir: Optional[str] = None  # 训练数据根目录（images / labels）
 
 
 class ConvertStartRequest(BaseModel):

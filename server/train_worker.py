@@ -121,10 +121,11 @@ def main() -> int:
         weights = model_weights.get(config.get("model_version", "YOLOv11"), "yolo11n.pt")
 
     data_yaml = (config.get("dataset") or "coco8.yaml").strip()
-    # 解析数据集配置文件：优先 datasets/ 目录，其次项目根目录
+    # 解析数据集配置文件：优先设置的自定义配置目录，其次项目内 datasets/，再项目根
     yaml_candidate = Path(data_yaml)
     if not yaml_candidate.is_absolute():
-        for base_candidate in (base_dir / "datasets", base_dir):
+        cfg_dir = Path(config.get("datasets_cfg_dir") or str(base_dir / "datasets"))
+        for base_candidate in (cfg_dir, base_dir):
             if (base_candidate / data_yaml).exists():
                 yaml_candidate = base_candidate / data_yaml
                 break
@@ -208,7 +209,7 @@ def main() -> int:
             workers=config.get("workers", 8),
             cache=cache_value,
             device=_resolve_device(config.get("device", "0")),
-            project=str(base_dir / "runs"),
+            project=config.get("project_dir") or str(base_dir / "runs"),
             name=task_name,
             exist_ok=True,
             resume=config.get("resume", True),

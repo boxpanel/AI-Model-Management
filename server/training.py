@@ -148,6 +148,19 @@ class TrainingManager:
     # ------------------------------------------------------------------ #
     # 启动 / 停止
     # ------------------------------------------------------------------ #
+    def _resolve_setting_dir(self, value: str) -> Optional[Path]:
+        """将设置中的目录解析为绝对路径；空值或非法路径返回 None。"""
+        value = (value or "").strip()
+        if not value:
+            return None
+        p = Path(value).expanduser()
+        if not p.is_absolute():
+            p = self.base_dir / p
+        try:
+            return p.resolve()
+        except (ValueError, OSError):
+            return None
+
     def _resolve_worker_python(self, model_version: str) -> str:
         """优先使用对应模型的 Conda 环境 Python；未找到时回退到当前解释器（venv）。"""
         try:
@@ -170,6 +183,17 @@ class TrainingManager:
             raise RuntimeError("已有训练任务正在运行")
         payload = config.model_dump()
         payload["base_dir"] = str(self.base_dir)
+        # 训练输出目录与数据集配置目录：优先使用设置中的自定义目录，否则默认项目内 runs / datasets
+        if self._db is not None:
+            runs_setting = (self._db.get_setting("runs_dir", "") or "").strip()
+            cfg_setting = (self._db.get_setting("datasets_cfg_dir", "") or "").strip()
+        else:
+            runs_setting, cfg_setting = "", ""
+        project_dir = self._resolve_setting_dir(runs_setting) or self.runs_dir
+        cfg_dir = self._resolve_setting_dir(cfg_setting) or (self.base_dir / "datasets")
+        project_dir.mkdir(parents=True, exist_ok=True)
+        payload["project_dir"] = str(project_dir)
+        payload["datasets_cfg_dir"] = str(cfg_dir)
         self.worker_config_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
         if self.worker_state_path.exists():
             self.worker_state_path.unlink()
@@ -211,11 +235,16 @@ class TrainingManager:
                 self._task_id = self._db.create_task(
                     config.task_name, config.model_version, config.dataset, config.device, payload
                 )
+                out = project_dir / config.task_name
+                try:
+                    out_rel = str(out.relative_to(self.base_dir)).replace("\\", "/")
+                except ValueError:
+                    out_rel = str(out)
                 self._db.update_task(
                     self._task_id,
                     state="running",
                     total_epochs=config.epochs,
-                    output_dir=f"runs/{config.task_name}",
+                    output_dir=out_rel,
                     message="训练任务已启动",
                 )
             except Exception:

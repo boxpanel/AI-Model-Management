@@ -116,7 +116,7 @@
       </section>
       </div>
       <section class="view" data-view="datasets">
-        <header><div><h1>数据集</h1><p class="subtitle">管理 YOLO 数据集配置文件，内置预设可在训练管理页直接选用。</p></div><div class="header-actions"><button class="btn" id="dataset-upload-btn" type="button">上传数据集</button><input id="dataset-upload-input" type="file" accept=".zip" hidden /><button class="btn primary" id="open-dataset-modal" type="button">+ 新建数据集</button></div></header>
+        <header><div><h1>数据集</h1><p class="subtitle">管理 YOLO 数据集配置文件，内置预设可在训练管理页直接选用。</p></div><div class="header-actions"><button class="btn" id="annotation-upload-btn" type="button">上传标注</button><button class="btn" id="dataset-upload-btn" type="button">上传数据集</button><input id="dataset-upload-input" type="file" accept=".zip" hidden /><button class="btn primary" id="open-dataset-modal" type="button">+ 新建数据集</button></div></header>
         <section class="card"><div class="list-head"><h2>数据集列表</h2><span class="text-small" id="dataset-list-status"></span></div><div id="dataset-list" class="list-grid"></div></section>
       </section>
       <section class="view" data-view="models">
@@ -138,6 +138,9 @@
           <div class="form-grid">
             <div><label for="setting-max-jobs">最大并行任务数</label><input id="setting-max-jobs" type="number" value="1" min="1" /></div>
             <div><label for="setting-autosave">检查点保存间隔（轮）</label><input id="setting-autosave" type="number" value="10" min="1" /></div>
+            <div class="full"><label for="setting-runs-dir">训练输出目录</label><div class="path-input"><input id="setting-runs-dir" type="text" placeholder="runs" /><button class="path-pick" data-target="setting-runs-dir" type="button" title="选择目录">📁</button></div><p class="hint" style="margin:6px 0 0">训练产出的权重（如 runs/&lt;任务名&gt;/weights/*.pt）存放位置。</p></div>
+            <div class="full"><label for="setting-cfg-dir">数据集配置目录</label><div class="path-input"><input id="setting-cfg-dir" type="text" placeholder="datasets" /><button class="path-pick" data-target="setting-cfg-dir" type="button" title="选择目录">📁</button></div><p class="hint" style="margin:6px 0 0">数据集 yaml 配置文件存放位置。</p></div>
+            <div class="full"><label for="setting-data-dir">训练数据目录</label><div class="path-input"><input id="setting-data-dir" type="text" placeholder="datasets" /><button class="path-pick" data-target="setting-data-dir" type="button" title="选择目录">📁</button></div><p class="hint" style="margin:6px 0 0">训练数据根目录（含 images / labels），新建数据集时作为默认数据根。</p></div>
           </div>
           <div class="actions"><button class="btn primary" id="save-settings" type="button">保存设置</button></div>
         </section>
@@ -164,6 +167,18 @@
         <div><label for="ds-flip">翻转索引 flip_idx（pose 用）</label><input id="ds-flip" type="text" placeholder="如 0, 1, 5" /></div>
       </div>
       <div class="actions"><button class="btn" id="ds-cancel" type="button">取消</button><button class="btn primary" id="ds-submit" type="button">创建数据集</button></div>
+    </div>
+  </div>
+  <div class="modal-mask" id="annotation-modal" style="display:none">
+    <div class="modal">
+      <div class="modal-head"><h2>上传标注文件</h2><button class="modal-close" id="annotation-modal-close" type="button">×</button></div>
+      <div class="form-grid">
+        <div><label for="an-dataset">目标数据集</label><select id="an-dataset"></select></div>
+        <div><label for="an-split">数据分区</label><select id="an-split"><option value="train">train</option><option value="val">val</option><option value="test">test</option></select></div>
+        <div class="full"><label for="an-files">标注文件</label><input id="an-files" type="file" accept=".txt,.json,.zip" multiple /></div>
+      </div>
+      <p class="hint" id="an-hint">images/&lt;分区&gt; 中的每张图片（如 img_001.jpg）对应 labels/&lt;分区&gt; 中的一个同名 .txt 标注文件（如 img_001.txt）。.json 标注会自动转换为 .txt 后保存。</p>
+      <div class="actions"><button class="btn" id="an-cancel" type="button">取消</button><button class="btn primary" id="an-submit" type="button">上传</button></div>
     </div>
   </div>
   <div class="modal-mask" id="task-modal" style="display:none">
@@ -799,6 +814,58 @@
       } catch (_) { showToast('服务未连接，无法上传数据集'); }
       event.target.value = '';
     });
+    // ---------- 上传标注文件（每张图片一个同名 .txt，YOLO 格式） ----------
+    const anModal = document.getElementById('annotation-modal');
+    async function fillAnnotationDatasets() {
+      const select = document.getElementById('an-dataset');
+      const prev = select.value;
+      select.innerHTML = '';
+      let names = ['coco8.yaml', 'coco128.yaml', 'traffic-object-v3.yaml'];
+      try {
+        const items = await api('/api/datasets');
+        if (Array.isArray(items) && items.length) names = items.map(item => item.name);
+      } catch (_) {}
+      names.forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        select.appendChild(opt);
+      });
+      if (prev && names.includes(prev)) select.value = prev;
+    }
+    document.getElementById('annotation-upload-btn').addEventListener('click', () => {
+      document.getElementById('an-files').value = '';
+      anModal.style.display = 'flex';
+      fillAnnotationDatasets();
+    });
+    document.getElementById('annotation-modal-close').addEventListener('click', () => { anModal.style.display = 'none'; });
+    document.getElementById('an-cancel').addEventListener('click', () => { anModal.style.display = 'none'; });
+    document.getElementById('an-submit').addEventListener('click', async () => {
+      const files = document.getElementById('an-files').files;
+      if (!files.length) { showToast('请先选择标注文件'); return; }
+      const form = new FormData();
+      form.append('dataset', document.getElementById('an-dataset').value);
+      form.append('split', document.getElementById('an-split').value);
+      Array.from(files).forEach(file => form.append('files', file));
+      const btn = document.getElementById('an-submit');
+      btn.disabled = true;
+      try {
+        const result = await api('/api/datasets/annotations/upload', { method: 'POST', body: form });
+        if (result.error) showToast(result.error);
+        else {
+          let msg = '已上传 ' + (result.count || 0) + ' 个标注文件到 ' + (result.dir || '');
+          if (result.converted) msg += '（其中 ' + result.converted + ' 个由 json 转换）';
+          if (result.skipped) msg += '，跳过 ' + result.skipped + ' 个';
+          showToast(msg);
+          if (result.errors && result.errors.length) result.errors.forEach(err => showToast('标注失败：' + err));
+        }
+      } catch (_) {
+        showToast('服务未连接，无法上传标注文件');
+      }
+      btn.disabled = false;
+      anModal.style.display = 'none';
+      document.getElementById('an-files').value = '';
+    });
     const dsModal = document.getElementById('dataset-modal');
     let dsModalMode = 'create';
     function openDatasetModal(mode, item) {
@@ -824,6 +891,7 @@
         submit.textContent = '创建数据集';
         document.getElementById('ds-name').readOnly = false;
         ['ds-name', 'ds-root', 'ds-test', 'ds-names', 'ds-download', 'ds-kpt', 'ds-flip'].forEach(id => { document.getElementById(id).value = ''; });
+        if (dataDirDefault) document.getElementById('ds-root').value = dataDirDefault;
         document.getElementById('ds-train').value = 'images/train';
         document.getElementById('ds-val').value = 'images/val';
         document.getElementById('ds-nc').value = '1';
@@ -944,15 +1012,23 @@
         showToast('服务未连接，草稿已保存到本地浏览器');
       }
     });
+    let dataDirDefault = '';
     async function loadSettings() {
       try {
         const s = await api('/api/settings');
         if (s.max_parallel_jobs) document.getElementById('setting-max-jobs').value = s.max_parallel_jobs;
+        if (s.runs_dir) document.getElementById('setting-runs-dir').value = s.runs_dir;
+        if (s.datasets_cfg_dir) document.getElementById('setting-cfg-dir').value = s.datasets_cfg_dir;
+        if (s.datasets_data_dir) document.getElementById('setting-data-dir').value = s.datasets_data_dir;
+        dataDirDefault = s.datasets_data_dir || '';
       } catch (_) {}
     }
     document.getElementById('save-settings').addEventListener('click', async () => {
       const payload = {
         max_parallel_jobs: Number(document.getElementById('setting-max-jobs').value) || 1,
+        runs_dir: document.getElementById('setting-runs-dir').value.trim(),
+        datasets_cfg_dir: document.getElementById('setting-cfg-dir').value.trim(),
+        datasets_data_dir: document.getElementById('setting-data-dir').value.trim(),
       };
       try {
         await api('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });

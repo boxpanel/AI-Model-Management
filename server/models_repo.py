@@ -31,10 +31,10 @@ def _is_model_dir(path: Path) -> bool:
     return path.is_dir() and DIR_MARKER in path.name
 
 
-def list_models(base_dir: Path) -> list[dict[str, Any]]:
+def list_models(base_dir: Path, runs_dirs: list[Path] | None = None) -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
     uploads = base_dir / "uploads"
-    runs = base_dir / "runs"
+    runs_list = runs_dirs or [base_dir / "runs"]
 
     if uploads.exists():
         for path in sorted(uploads.iterdir()):
@@ -43,7 +43,9 @@ def list_models(base_dir: Path) -> list[dict[str, Any]]:
             elif path.is_file() and path.suffix.lower() in FILE_EXTS:
                 items.append(_entry_info(base_dir, path, "upload", path.name))
 
-    if runs.exists():
+    for runs in runs_list:
+        if not runs.exists():
+            continue
         for path in sorted(runs.glob("**/weights/*")):
             if _is_model_dir(path):
                 task_name = path.parent.parent.name

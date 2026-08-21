@@ -42,9 +42,9 @@ BUILTIN_DATASETS = [
 
 
 class DatasetService:
-    def __init__(self, base_dir: Path, db: Database) -> None:
+    def __init__(self, base_dir: Path, db: Database, datasets_dir: Path | None = None) -> None:
         self.base_dir = base_dir
-        self.datasets_dir = base_dir / "datasets"
+        self.datasets_dir = (datasets_dir or (base_dir / "datasets")).resolve()
         self.datasets_dir.mkdir(parents=True, exist_ok=True)
         self.db = db
 
