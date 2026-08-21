@@ -85,7 +85,8 @@ echo "[1/6] Python: $(python3 --version)（架构 $(uname -m)）"
 install_apt_pkgs() {
   local pkgs=()
   for pkg in "$@"; do
-    if apt-cache policy "$pkg" 2>/dev/null | grep -q "^  Candidate: ."; then
+    # LC_ALL=C 强制英文输出，避免中文 locale 下 apt-cache policy 输出"候选"导致误判无可用包
+    if LC_ALL=C apt-cache policy "$pkg" 2>/dev/null | grep -q "^  Candidate: ."; then
       pkgs+=("$pkg")
     else
       echo "  [跳过] 当前系统无可用包：$pkg"
