@@ -54,11 +54,13 @@ cd "$SCRIPT_DIR"
 
 SKIP_RKNN=0
 NO_SUDO=0
+DRIVER_AUTO=1
 for arg in "$@"; do
   case "$arg" in
     --skip-rknn) SKIP_RKNN=1 ;;
     --no-sudo)   NO_SUDO=1 ;;
-    *) echo "未知参数：$arg（可用：--skip-rknn / --no-sudo）" ;;
+    --no-driver) DRIVER_AUTO=0 ;;
+    *) echo "未知参数：$arg（可用：--skip-rknn / --no-sudo / --no-driver）" ;;
   esac
 done
 
@@ -256,15 +258,72 @@ echo "  - 管理员账号就绪"
 echo "$SERVER_PORT" > "$SCRIPT_DIR/.visionlab_port"
 echo "  - 服务端口 ${SERVER_PORT}（已写入 .visionlab_port）"
 
-# ---------- 6. GPU / CUDA 环境检测 ----------
-echo "[6/6] 环境检测…"
-if command -v nvidia-smi &>/dev/null && nvidia-smi &>/dev/null; then
-  echo "  NVIDIA 驱动: 已检测到（GPU 训练可用）"
-  nvidia-smi --query-gpu=name,memory.total --format=csv,noheader 2>/dev/null | head -n 8 | sed 's/^/    /'
+# ---------- 6. GPU 驱动检测与自动安装 ----------
+# 检测显卡品牌（NVIDIA / AMD / Intel），未安装驱动时自动安装：
+#   - NVIDIA：通过 apt 安装官方驱动（Ubuntu 用 ubuntu-drivers 自动选版本）
+#   - AMD / Intel：系统内核已内置开源驱动，无需额外安装
+# 跳过方式：--no-driver（云主机/虚拟机无独立显卡时自动跳过）
+echo "[6/6] GPU 驱动检测…"
+GPU_VENDOR=""
+if command -v lspci &>/dev/null; then
+  if lspci 2>/dev/null | grep -qi "nvidia"; then GPU_VENDOR="nvidia"
+  elif lspci 2>/dev/null | grep -qiE "amd|ati|radeon"; then GPU_VENDOR="amd"
+  elif lspci 2>/dev/null | grep -qiE "intel|integrated graphics"; then GPU_VENDOR="intel"
+  fi
+fi
+
+DRIVER_READY=0
+if command -v nvidia-smi &>/dev/null; then DRIVER_READY=1
+elif lsmod 2>/dev/null | grep -qE "amdgpu|i915"; then DRIVER_READY=1
+fi
+
+if [ "$DRIVER_READY" = "1" ]; then
+  echo "  GPU 驱动: 已就绪"
+  if command -v nvidia-smi &>/dev/null && nvidia-smi &>/dev/null; then
+    nvidia-smi --query-gpu=name,memory.total --format=csv,noheader 2>/dev/null | head -n 8 | sed 's/^/    /'
+  fi
+elif [ -z "$GPU_VENDOR" ]; then
+  echo "  GPU: 未检测到独立显卡（可能为云主机/虚拟机，将使用 CPU 训练）"
+elif [ "$NO_SUDO" = "1" ]; then
+  echo "  检测到 ${GPU_VENDOR} 显卡但未安装驱动；已跳过安装（--no-sudo）"
+elif [ "$DRIVER_AUTO" = "0" ]; then
+  echo "  检测到 ${GPU_VENDOR} 显卡但未安装驱动；已跳过安装（--no-driver）"
 else
-  echo "  NVIDIA 驱动: 未检测到"
-  echo "  [提示] 如需 GPU 训练，请安装 NVIDIA 驱动后重启系统；"
-  echo "         未安装驱动时训练将使用 CPU（device=cpu）。"
+  case "$GPU_VENDOR" in
+    nvidia)
+      echo "  检测到 NVIDIA 显卡但未安装驱动，正在自动安装（可能需要数分钟）…"
+      if [ "$(id -u)" -ne 0 ] && ! command -v sudo &>/dev/null; then
+        echo "  [错误] 需要 root 或 sudo 权限安装 NVIDIA 驱动，请手动安装后重试"
+      else
+        SUDO_PREFIX=""
+        if [ "$(id -u)" -ne 0 ]; then SUDO_PREFIX="sudo"; fi
+        DRV_OK=0
+        if command -v ubuntu-drivers &>/dev/null && $SUDO_PREFIX ubuntu-drivers install; then
+          DRV_OK=1
+        fi
+        if [ "$DRV_OK" = "0" ]; then
+          $SUDO_PREFIX apt-get update -y
+          if $SUDO_PREFIX apt-get install -y nvidia-driver-535; then
+            DRV_OK=1
+          elif $SUDO_PREFIX apt-get install -y nvidia-driver-470; then
+            DRV_OK=1
+          fi
+        fi
+        if [ "$DRV_OK" = "1" ]; then
+          echo "  NVIDIA 驱动安装完成"
+          echo "  [重要] 重启系统后驱动生效：sudo reboot"
+          echo "         重启前服务将使用 CPU 训练，重启后自动启用 GPU。"
+        else
+          echo "  [警告] NVIDIA 驱动自动安装失败，请手动执行："
+          echo "         sudo ubuntu-drivers install"
+          echo "         （需驱动版本 ≥ 525 以支持 CUDA 12.1，如 nvidia-driver-535）"
+        fi
+      fi
+      ;;
+    amd|intel)
+      echo "  显卡: ${GPU_VENDOR}（系统内核已内置开源驱动，无需额外安装）"
+      ;;
+  esac
 fi
 
 echo ""
