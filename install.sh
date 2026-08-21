@@ -474,11 +474,9 @@ if [ "$DRV_OK" = "1" ]; then
   if [ "$AUTO_REBOOT" = "1" ]; then
     echo ""
     echo "=========================================="
-    echo " NVIDIA 驱动已安装，10 秒后自动重启服务器…"
+    echo " NVIDIA 驱动已安装，正在重启服务器…"
     echo " （重启后系统将自动启动 VisionLab 服务）"
-    echo " 如需取消，请立即按 Ctrl+C"
     echo "=========================================="
-    sleep 10
     reboot
   else
     echo ""
@@ -487,8 +485,7 @@ if [ "$DRV_OK" = "1" ]; then
     ask_value " 是否现在重启服务器？[Y/n]（回车默认重启） " "Y"
     case "$ASK_VALUE" in
       y|Y|yes|YES)
-        echo " 5 秒后重启服务器…"
-        sleep 5
+        echo " 正在重启服务器…"
         reboot
         ;;
       *)
