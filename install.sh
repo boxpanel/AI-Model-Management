@@ -257,7 +257,7 @@ ask_secret "  管理员密码（留空自动生成随机密码）: " "$(openssl 
 ADMIN_PWD="$ASK_VALUE"
 echo "  → 端口 ${SERVER_PORT} / 账号 ${ADMIN_USER} / 密码已设置"
 if [ "$SERVER_PORT" -lt 1024 ]; then
-  echo "  [提示] 端口 ${SERVER_PORT} 低于 1024，服务需以 root 身份运行（建议：sudo ./start.sh）"
+  echo "  [提示] 端口 ${SERVER_PORT} 低于 1024，服务需以 root 身份运行（建议：sudo visionlab）"
 fi
 echo "---------------------------------------------------------------"
 
@@ -373,10 +373,10 @@ echo "  （请登录后立即在「设置」页修改密码）"
 echo ""
 echo "  仓库目录:   $SCRIPT_DIR"
 echo ""
-echo "  启动服务:   visionlab（任意目录）或 cd \"$SCRIPT_DIR\" && ./start.sh"
-echo "  停止服务:   visionlab-stop 或 cd \"$SCRIPT_DIR\" && ./stop.sh"
-echo "  删除程序:   cd \"$SCRIPT_DIR\" && ./uninstall.sh"
-echo "  开发模式:   cd \"$SCRIPT_DIR\" && ./start.sh --dev"
+echo "  启动服务:   visionlab"
+echo "  停止服务:   visionlab-stop"
+echo "  删除程序:   visionlab-uninstall"
+echo "  开发模式:   visionlab --dev"
 if [ "$SERVER_PORT" -lt 1024 ] && [ "$(id -u)" -ne 0 ]; then
   echo "  [提示] 端口 ${SERVER_PORT} 低于 1024，启动/停止请用 sudo 执行"
 fi
@@ -432,10 +432,12 @@ fi
 
 # ---------- 创建全局启动命令（任意目录可用） ----------
 # 解决用户在非仓库目录执行 ./start.sh 时报"没有那个文件或目录"的问题
+# start/stop/uninstall 脚本内部用 readlink -f 解析真实仓库路径，软链接执行不影响
 if [ "$(id -u)" -eq 0 ]; then
   ln -sf "$SCRIPT_DIR/start.sh" /usr/local/bin/visionlab 2>/dev/null \
-    && echo "  全局命令: visionlab（任意目录均可启动服务）"
+    && echo "  全局命令: visionlab / visionlab-stop / visionlab-uninstall（任意目录可用）"
   ln -sf "$SCRIPT_DIR/stop.sh" /usr/local/bin/visionlab-stop 2>/dev/null
+  ln -sf "$SCRIPT_DIR/uninstall.sh" /usr/local/bin/visionlab-uninstall 2>/dev/null
 fi
 
 START_LOG="$SCRIPT_DIR/visionlab-start.log"
@@ -453,13 +455,13 @@ done
 if [ "$START_OK" = "0" ]; then
   echo "  [警告] 服务未就绪，最近日志："
   tail -n 15 "$START_LOG" 2>/dev/null | sed 's/^/    /' || true
-  echo "  [提示] 启动命令: cd \"$SCRIPT_DIR\" && ./start.sh"
+  echo "  [提示] 启动命令: visionlab"
   if grep -q "bind on address" "$START_LOG" 2>/dev/null; then
     echo "  [提示] 端口 ${SERVER_PORT} 绑定被拒绝（环境权限限制），请改用高位端口，例如："
-    echo "         echo 8080 > \"$SCRIPT_DIR/.visionlab_port\" && cd \"$SCRIPT_DIR\" && ./start.sh"
+    echo "         echo 8080 > \"$SCRIPT_DIR/.visionlab_port\" && visionlab"
   elif [ "$SERVER_PORT" -lt 1024 ] && [ "$(id -u)" -ne 0 ]; then
     echo "  [提示] 端口 ${SERVER_PORT} 低于 1024，普通用户无法直接绑定，请用："
-    echo "         cd \"$SCRIPT_DIR\" && sudo ./start.sh"
+    echo "         sudo visionlab"
   fi
 fi
 echo "  启动日志:   $START_LOG"

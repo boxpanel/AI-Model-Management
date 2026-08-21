@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # VisionLab 停止服务
 set -e
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# readlink -f 解析软链接真实路径，保证通过全局命令 visionlab-stop 执行时 SCRIPT_DIR 指向仓库目录
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 
 PORT_FILE="$SCRIPT_DIR/.visionlab_port"
 PORT="80"

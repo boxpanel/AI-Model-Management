@@ -4,7 +4,8 @@
 #   ./start.sh          生产模式（默认）：不启用热重载，训练任务不会因代码改动重启而中断
 #   ./start.sh --dev    开发模式：启用 --reload，修改代码会自动重启服务（会中断正在运行的训练）
 set -e
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# readlink -f 解析软链接真实路径，保证通过全局命令 visionlab 执行时 SCRIPT_DIR 指向仓库目录
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 cd "$SCRIPT_DIR"
 
 # 服务端口：优先读取安装时写入的 .visionlab_port，默认 80

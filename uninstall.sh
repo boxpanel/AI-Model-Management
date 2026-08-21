@@ -3,7 +3,8 @@
 # 停止服务并删除：虚拟环境、数据库、端口配置、训练输出与数据集
 # 注意：Conda 训练环境（YOLOv11 / YOLOv8 / YOLOv5）不会自动删除，删除方式见下方提示
 set -e
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# readlink -f 解析软链接真实路径，保证通过全局命令 visionlab-uninstall 执行时 SCRIPT_DIR 指向仓库目录
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 
 echo "=========================================="
 echo " VisionLab 删除程序"
@@ -43,7 +44,7 @@ if [ -f "/etc/systemd/system/visionlab.service" ]; then
   $UNINSTALL_SUDO systemctl daemon-reload 2>/dev/null || true
 fi
 # 移除全局启动命令软链接
-$UNINSTALL_SUDO rm -f /usr/local/bin/visionlab /usr/local/bin/visionlab-stop 2>/dev/null || true
+$UNINSTALL_SUDO rm -f /usr/local/bin/visionlab /usr/local/bin/visionlab-stop /usr/local/bin/visionlab-uninstall 2>/dev/null || true
 
 echo "[2/3] 删除程序文件…"
 rm -rf "$SCRIPT_DIR/venv"
