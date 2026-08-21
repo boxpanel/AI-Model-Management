@@ -166,6 +166,13 @@ fi
 "$VENV_PY" -m pip install --upgrade pip
 "$VENV_PY" -m pip install -r requirements-server.txt
 
+# ---------- 创建默认工作目录 ----------
+# 训练输出 / 数据集配置与数据 / 模型上传目录在安装时即建好，
+# 避免首次使用时提示目录不存在（服务启动时也会自动确保存在）
+echo "  - 创建默认工作目录（runs / datasets / uploads）…"
+mkdir -p "$SCRIPT_DIR/runs" "$SCRIPT_DIR/datasets" "$SCRIPT_DIR/uploads"
+echo "  - 工作目录就绪"
+
 # ---------- 询问安装配置（端口 / 账号 / 密码） ----------
 # 提示用 printf 输出（read -p 在 curl|bash 管道下不显示提示）；
 # 优先从 /dev/tty 读取（管道执行时 stdin 不可交互）；60 秒无输入则用默认值；

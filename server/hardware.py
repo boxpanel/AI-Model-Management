@@ -70,6 +70,45 @@ def _read_pynvml() -> list[dict[str, Any]]:
         return []
 
 
+def _read_disk() -> dict[str, Any]:
+    """读取磁盘分区信息，主分区用于仪表盘展示。"""
+    disk = {"percent": 0.0, "usedGB": 0.0, "totalGB": 0.0, "mount": "", "partitions": []}
+    try:
+        import psutil
+
+        partitions = []
+        for part in psutil.disk_partitions(all=False):
+            # 跳过光驱/虚拟文件系统等不可用分区
+            if not part.fstype or any(k in part.fstype.lower() for k in ("iso9660", "squashfs", "udf")):
+                continue
+            try:
+                usage = psutil.disk_usage(part.mountpoint)
+            except (OSError, PermissionError):
+                continue
+            partitions.append(
+                {
+                    "mount": part.mountpoint,
+                    "totalGB": round(usage.total / (1024**3), 1),
+                    "usedGB": round(usage.used / (1024**3), 1),
+                    "percent": round(usage.percent, 1),
+                }
+            )
+        if partitions:
+            main = next((p for p in partitions if p["mount"] in ("/", "C:\\")), partitions[0])
+            disk.update(
+                {
+                    "percent": main["percent"],
+                    "usedGB": main["usedGB"],
+                    "totalGB": main["totalGB"],
+                    "mount": main["mount"],
+                    "partitions": partitions,
+                }
+            )
+    except ImportError:
+        pass
+    return disk
+
+
 def get_hardware_metrics() -> dict[str, Any]:
     cpu_percent = 0.0
     memory = {"percent": 0.0, "usedGB": 0.0, "totalGB": 0.0}
@@ -93,5 +132,6 @@ def get_hardware_metrics() -> dict[str, Any]:
     return {
         "cpu": {"percent": cpu_percent, "model": cpu_model},
         "memory": memory,
+        "disk": _read_disk(),
         "gpu": gpus,
     }
