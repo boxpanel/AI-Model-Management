@@ -438,31 +438,6 @@ if [ "$(id -u)" -eq 0 ]; then
   ln -sf "$SCRIPT_DIR/uninstall.sh" /usr/local/bin/visionlab-uninstall 2>/dev/null
 fi
 
-# ---------- 安装完成：是否需要重启（最后一个交互询问） ----------
-# 行为明确可预期：仅本次安装了 NVIDIA 驱动才需要重启（重启后驱动加载、systemd 自启生效）；
-# 未装驱动则明确提示无需重启。
-# 先询问再启动服务：选择重启则直接 reboot（重启后由 systemd 自动启动服务），无需重复启动。
-if [ "$DRV_OK" = "1" ]; then
-  echo ""
-  echo "=========================================="
-  echo " NVIDIA 驱动已安装，需要重启才能启用 GPU。"
-  ask_value " 是否现在重启服务器？[Y/n]（回车默认重启） " "Y"
-  case "$ASK_VALUE" in
-    y|Y|yes|YES)
-      echo " 正在重启服务器…"
-      reboot
-      exit 0
-      ;;
-    *)
-      echo " 已选择稍后重启，继续启动服务（当前以 CPU 模式运行）。"
-      echo " 需要 GPU 训练时请手动执行：sudo reboot"
-      ;;
-  esac
-else
-  echo "无需重启，服务已启动。"
-fi
-echo "=========================================="
-
 START_LOG="$SCRIPT_DIR/visionlab-start.log"
 echo "  正在自动启动服务…"
 nohup bash "$SCRIPT_DIR/start.sh" > "$START_LOG" 2>&1 &
@@ -488,4 +463,26 @@ if [ "$START_OK" = "0" ]; then
   fi
 fi
 echo "  启动日志:   $START_LOG"
+echo "=========================================="
+
+# ---------- 安装完成：是否需要重启（最后一个交互询问，在服务启动之后） ----------
+# 行为明确可预期：仅本次安装了 NVIDIA 驱动才需要重启（重启后驱动加载、systemd 自启生效）；
+# 未装驱动则无需重启。先展示服务启动结果，最后再询问是否重启。
+if [ "$DRV_OK" = "1" ]; then
+  echo ""
+  echo "=========================================="
+  echo " NVIDIA 驱动已安装，需要重启才能启用 GPU。"
+  ask_value " 是否现在重启服务器？[Y/n]（回车默认重启） " "Y"
+  case "$ASK_VALUE" in
+    y|Y|yes|YES)
+      echo " 正在重启服务器…（重启后 systemd 将自动启动服务）"
+      reboot
+      exit 0
+      ;;
+    *)
+      echo " 已选择稍后重启，服务保持运行（当前以 CPU 模式训练）。"
+      echo " 需要 GPU 训练时请手动执行：sudo reboot"
+      ;;
+  esac
+fi
 echo "=========================================="
