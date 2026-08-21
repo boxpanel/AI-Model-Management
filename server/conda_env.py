@@ -107,20 +107,31 @@ def get_conda_python(env_name: str) -> Optional[str]:
 
 
 def probe_env(python_executable: str) -> dict[str, Any]:
+    # 注意：ultralytics 首次导入会向 stdout 打印设置初始化欢迎信息（Creating new
+    # Ultralytics Settings...），必须用 redirect 抑制，否则会污染下方的 JSON 输出导致解析失败
     script = (
-        "import json, sys\n"
+        "import json, os, sys\n"
+        "import contextlib\n"
+        "_sink = open(os.devnull, 'w')\n"
         "data = {'python_version': '.'.join(map(str, sys.version_info[:3])), "
         "'ultralytics_available': False, 'cuda_available': False, 'cuda_version': None, "
         "'gpu_name': None, 'gpu_names': [], 'gpu_count': 0}\n"
-        "try:\n import ultralytics\n data['ultralytics_available'] = True\n"
-        "except ImportError:\n pass\n"
-        "try:\n import torch\n data['cuda_available'] = torch.cuda.is_available()\n"
-        " if data['cuda_available']:\n"
-        "  data['cuda_version'] = torch.version.cuda\n"
-        "  data['gpu_count'] = torch.cuda.device_count()\n"
-        "  data['gpu_names'] = [torch.cuda.get_device_name(i) for i in range(data['gpu_count'])]\n"
-        "  data['gpu_name'] = data['gpu_names'][0] if data['gpu_names'] else None\n"
-        "except Exception:\n pass\n"
+        "with contextlib.redirect_stdout(_sink), contextlib.redirect_stderr(_sink):\n"
+        "    try:\n"
+        "        import ultralytics\n"
+        "        data['ultralytics_available'] = True\n"
+        "    except ImportError:\n"
+        "        pass\n"
+        "    try:\n"
+        "        import torch\n"
+        "        data['cuda_available'] = torch.cuda.is_available()\n"
+        "        if data['cuda_available']:\n"
+        "            data['cuda_version'] = torch.version.cuda\n"
+        "            data['gpu_count'] = torch.cuda.device_count()\n"
+        "            data['gpu_names'] = [torch.cuda.get_device_name(i) for i in range(data['gpu_count'])]\n"
+        "            data['gpu_name'] = data['gpu_names'][0] if data['gpu_names'] else None\n"
+        "    except Exception:\n"
+        "        pass\n"
         "print(json.dumps(data))"
     )
     try:
