@@ -240,6 +240,7 @@
       : 'http://127.0.0.1:80';
     let ws, uploadedWeightsPath = '', backendOnline = false, trainPoints = ['40,38'], valPoints = ['40,32'];
     let authToken = localStorage.getItem('visionlab-token') || '', appInited = false, wsStop = false;
+    let suppressAutoSwitch = false; // 停止训练后抑制 WS 自动切回训练界面（等待 worker 真正退出）
     let currentUserIsAdmin = false;
 
     async function api(path, options = {}) {
@@ -339,8 +340,9 @@
         if (payload.type === 'log') addLog(payload.message, payload.level === 'ok' ? 'log-ok' : payload.level === 'error' ? '' : 'log-info');
         if (payload.type === 'status') applyTrainingMetrics(payload.data || payload);
         const statusData = payload.type === 'status' ? (payload.data || payload) : payload;
+        if (statusData && statusData.state && statusData.state !== 'running') suppressAutoSwitch = false;
         if ((payload.type === 'metrics' || payload.type === 'status') && statusData && statusData.state === 'running') {
-          if (document.getElementById('setup-screen').style.display !== 'none') switchToTrainingScreen(statusData.task_name);
+          if (!suppressAutoSwitch && document.getElementById('setup-screen').style.display !== 'none') switchToTrainingScreen(statusData.task_name);
         }
       };
       ws.onclose = () => { if (!wsStop) setTimeout(connectWebSocket, 2500); };
@@ -1415,6 +1417,7 @@
     });
     document.getElementById('start').addEventListener('click', async () => {
       if (!environmentReady) { showToast('训练环境尚未就绪'); return; }
+      suppressAutoSwitch = false;
       const config = buildTrainingConfig();
       document.getElementById('setup-screen').style.display = 'none';
       document.getElementById('training-screen').style.display = 'block';
@@ -1457,7 +1460,9 @@
         await api('/api/training/stop', { method: 'POST' });
         addLog('训练已由用户停止，当前检查点已保存。', 'log-ok');
         showToast('训练已停止');
-        // 停止后返回训练管理初始界面
+        // 停止后返回训练管理初始界面；抑制 WS 因 worker 未完全退出而推送的 running 状态自动切屏
+        suppressAutoSwitch = true;
+        setTimeout(() => { suppressAutoSwitch = false; }, 20000);
         document.getElementById('training-screen').style.display = 'none';
         document.getElementById('setup-screen').style.display = 'block';
         resetSetupForm();
