@@ -542,7 +542,7 @@
         div.className = 'gauge';
         div.dataset.gpuIndex = String(index);
         const memoryText = gpu.memoryUsedGB != null && gpu.memoryTotalGB != null
-          ? `显存 ${Number(gpu.memoryUsedGB).toFixed(1)} / ${Number(gpu.memoryTotalGB).toFixed(1)} GB`
+          ? `显存 ${Number(gpu.memoryUsedGB).toFixed(2)} / ${Number(gpu.memoryTotalGB).toFixed(2)} GB`
           : `当前使用率 ${percent.toFixed(1)}%`;
         div.innerHTML = `<div class="dial" style="--value:${Math.max(0, Math.min(100, percent))}"><b>${Math.round(percent)}%</b></div><div><h3>GPU ${index}</h3><p>${gpu.model || 'NVIDIA GPU'}</p><span class="gauge-value">${memoryText}</span></div>`;
         container.appendChild(div);

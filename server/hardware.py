@@ -33,8 +33,8 @@ def _read_nvidia_smi() -> list[dict[str, Any]]:
                 {
                     "model": name,
                     "percent": util_f,
-                    "memoryUsedGB": round(used_f / 1024, 1),
-                    "memoryTotalGB": round(total_f / 1024, 1),
+                    "memoryUsedGB": round(used_f / 1024, 2),
+                    "memoryTotalGB": round(total_f / 1024, 2),
                 }
             )
         return gpus
@@ -60,8 +60,8 @@ def _read_pynvml() -> list[dict[str, Any]]:
                 {
                     "model": name,
                     "percent": float(util.gpu),
-                    "memoryUsedGB": round(memory.used / (1024**3), 1),
-                    "memoryTotalGB": round(memory.total / (1024**3), 1),
+                    "memoryUsedGB": round(memory.used / (1024**3), 2),
+                    "memoryTotalGB": round(memory.total / (1024**3), 2),
                 }
             )
         pynvml.nvmlShutdown()
