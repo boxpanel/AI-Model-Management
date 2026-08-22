@@ -1355,6 +1355,24 @@
       else if (state === 'error') running.textContent = '训练失败';
       else if (state === 'interrupted') running.textContent = '训练已中断';
       else if (state === 'running') running.innerHTML = '<span class="pulse"></span>训练进行中';
+      // 训练结束后停止按钮变为「开始训练」，点击返回训练管理页面
+      const stopBtn = document.getElementById('stop');
+      if (stopBtn) {
+        stopBtn.textContent = (state === 'completed' || state === 'stopped' || state === 'error' || state === 'interrupted')
+          ? '开始训练'
+          : '停止训练';
+      }
+    }
+    // 返回训练管理页面时初始化表单参数（模型 / 数据集 / 设备选择保持不变）
+    function resetSetupForm() {
+      const defaults = { 'task-name': 'yolo-exp-001', 'epochs': 1000, 'batch': 8, 'lr': 0.01, 'patience': 100 };
+      Object.keys(defaults).forEach(id => { const el = document.getElementById(id); if (el) el.value = defaults[id]; });
+      const imgsz = document.getElementById('imgsz'); if (imgsz) imgsz.selectedIndex = 0;
+      const optimizer = document.getElementById('optimizer'); if (optimizer) optimizer.selectedIndex = 0;
+      const cache = document.getElementById('cache'); if (cache) cache.selectedIndex = 0;
+      const resume = document.getElementById('resume'); if (resume) resume.checked = true;
+      const augmentation = document.getElementById('augmentation'); if (augmentation) augmentation.checked = true;
+      updateEstimate();
     }
     function buildTrainingConfig() {
       const imgszText = document.getElementById('imgsz').value;
@@ -1427,6 +1445,14 @@
       }
     });
     document.getElementById('stop').addEventListener('click', async () => {
+      const stopBtn = document.getElementById('stop');
+      // 训练已结束：按钮为「开始训练」，点击返回训练管理页面并初始化
+      if (stopBtn && stopBtn.textContent === '开始训练') {
+        document.getElementById('training-screen').style.display = 'none';
+        document.getElementById('setup-screen').style.display = 'block';
+        resetSetupForm();
+        return;
+      }
       try {
         await api('/api/training/stop', { method: 'POST' });
         addLog('训练已由用户停止，当前检查点已保存。', 'log-ok');
