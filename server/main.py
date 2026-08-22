@@ -678,7 +678,7 @@ async def model_convert(payload: ConvertStartRequest) -> dict[str, Any]:
     if not _is_within(base, target):
         raise HTTPException(status_code=400, detail="非法路径")
     if not target.exists() or not target.is_file():
-        raise HTTPException(status_code=404, detail="文件不存在")
+        raise HTTPException(status_code=404, detail=f"文件不存在：{payload.path}")
     try:
         return converter.start(payload)
     except RuntimeError as exc:

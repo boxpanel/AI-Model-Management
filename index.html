@@ -669,8 +669,8 @@
       const daysAgo = n => { const d = new Date(now - n * 86400000); const pad = v => String(v).padStart(2, '0'); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
       return [
         { name: 'yolo11n.pt', path: '官方预训练权重', size: '5.4 MB', tag: '默认', time: '—' },
-        { name: 'yolo-exp-001/best.pt', path: 'runs/train/yolo-exp-001/weights/best.pt', size: '6.2 MB', tag: '训练产出', time: daysAgo(2) },
-        { name: 'yolo-exp-002/best.pt', path: 'runs/train/yolo-exp-002/weights/best.pt', size: '6.4 MB', tag: '训练产出', time: daysAgo(1) }
+        { name: 'yolo-exp-001/best.pt', path: 'runs/yolo-exp-001/weights/best.pt', size: '6.2 MB', tag: '训练产出', time: daysAgo(2) },
+        { name: 'yolo-exp-002/best.pt', path: 'runs/yolo-exp-002/weights/best.pt', size: '6.4 MB', tag: '训练产出', time: daysAgo(1) }
       ];
     };
     async function loadModels() {
