@@ -1418,11 +1418,11 @@
           document.querySelector('.running').textContent = '启动失败';
           return;
         }
-        addLog(`已进入工作目录：${workDir}`, 'log-info');
+        addLog('训练任务已提交，等待训练环境启动…', 'log-info');
         applyTrainingMetrics(result.status);
       } catch (error) {
-        addLog('无法连接训练服务，请先运行 ./start.sh', '');
-        showToast('无法连接训练服务');
+        addLog('训练服务请求失败：' + (parseErr(error) || error.message || '未知错误'), '');
+        showToast('训练服务请求失败');
         document.querySelector('.running').textContent = '连接失败';
       }
     });
