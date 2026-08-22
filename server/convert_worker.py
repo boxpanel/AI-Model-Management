@@ -84,7 +84,8 @@ def main() -> int:
         return 1
 
     base_dir = Path(config.get("base_dir", ".")).resolve()
-    source = config.get("source", "")
+    # 注意：ConvertStartRequest 的字段名为 path（与前端一致），source 仅为历史兼容
+    source = config.get("path") or config.get("source", "")
     fmt = str(config.get("fmt", "onnx")).lower()
     if fmt not in FORMAT_INFO:
         state.update(state="error", message=f"不支持的导出格式：{fmt}")
