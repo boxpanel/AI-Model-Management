@@ -213,6 +213,69 @@ def main() -> int:
         map_text = f"{map50:.3f}" if map50 is not None else "-"
         emit_log(f"epoch {epoch:03d}/{total}  |  box_loss {loss_text}  |  mAP50 {map_text}", "ok" if epoch % 10 == 0 else "info")
 
+    def _to_float(value: Any) -> float | None:
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+
+    def _results_watcher() -> None:
+        """多卡（DDP）模式兜底：ultralytics 子进程不执行自定义回调（已知问题 #6168），
+        改为轮询每轮写入的 results.csv 更新指标与损失曲线，与回调逻辑保持一致。"""
+        import csv
+
+        total = int(config.get("epochs", 100))
+        results_path = Path(config.get("project_dir") or str(base_dir / "runs")) / task_name / "results.csv"
+        seen = 0
+        while not stop_event["stop"]:
+            time.sleep(3)
+            try:
+                if not results_path.exists():
+                    continue
+                with open(results_path, newline="", encoding="utf-8") as f:
+                    rows = list(csv.DictReader(f))
+                if len(rows) <= seen:
+                    continue
+                row = rows[-1]
+                epoch = int(float(row.get("epoch", 0) or 0))
+                box_loss = _to_float(row.get("train/box_loss"))
+                val_loss = _to_float(row.get("val/box_loss"))
+                map50 = _to_float(row.get("metrics/mAP50(B)"))
+                elapsed = time.time() - started
+                eta = int(max(0, (elapsed / max(epoch, 1)) * (total - epoch))) if epoch else None
+                prev = state.read()
+                train_points = prev.get("train_points", [])
+                val_points = prev.get("val_points", [])
+                x = 40 + epoch * (560 / max(total, 1))
+                train_points.append([round(x, 1), round(186 - min(150, (box_loss or 0.0) * 49), 1)])
+                val_points.append([round(x, 1), round(186 - min(150, (val_loss or box_loss or 0.0) * 49), 1)])
+                state.update(
+                    state="running",
+                    task_name=task_name,
+                    epoch=epoch,
+                    total_epochs=total,
+                    box_loss=round(box_loss, 4) if box_loss is not None else None,
+                    val_loss=round(val_loss, 4) if val_loss is not None else None,
+                    map50=round(map50, 4) if map50 is not None else None,
+                    progress=round(min(100.0, epoch / max(total, 1) * 100), 1),
+                    eta_seconds=eta,
+                    message="训练进行中",
+                    train_points=train_points,
+                    val_points=val_points,
+                )
+                loss_text = f"{box_loss:.3f}" if box_loss is not None else "-"
+                map_text = f"{map50:.3f}" if map50 is not None else "-"
+                emit_log(f"epoch {epoch:03d}/{total}  |  box_loss {loss_text}  |  mAP50 {map_text}", "ok" if epoch % 10 == 0 else "info")
+                seen = len(rows)
+            except Exception:
+                pass
+
+    device = _resolve_device(config.get("device", "0"))
+    if "," in str(device):
+        # 多卡 DDP：启用 results.csv 轮询兜底（回调在 DDP 子进程中不会执行）
+        import threading
+        threading.Thread(target=_results_watcher, daemon=True).start()
+
     try:
         model = YOLO(weights)
         model.add_callback("on_train_start", on_train_start)
@@ -228,7 +291,7 @@ def main() -> int:
             # 数据加载线程自动适配 CPU 逻辑核心数（不要求用户填写）
             workers=config.get("workers") or (os.cpu_count() or 8),
             cache=cache_value,
-            device=_resolve_device(config.get("device", "0")),
+            device=device,
             project=config.get("project_dir") or str(base_dir / "runs"),
             name=task_name,
             exist_ok=True,
