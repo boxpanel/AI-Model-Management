@@ -91,14 +91,17 @@ def main() -> int:
         state.update(state="error", message=f"不支持的导出格式：{fmt}")
         return 1
 
-    # 确保 pkg_resources（setuptools）可用：ultralytics 导出等环节会 import pkg_resources，缺失即失败
-    try:
-        import pkg_resources  # noqa: F401
-    except ImportError:
+    # 确保 pkg_resources（setuptools）可用：ultralytics / rknn-toolkit2 内部依赖它，缺失即失败。
+    # 注意：setuptools 82+ 已移除 pkg_resources，自动补装必须固定兼容版本（<=80.10.2）。
+    def _ensure_pkg_resources() -> bool:
+        try:
+            import pkg_resources  # noqa: F401
+            return True
+        except ImportError:
+            pass
         state.update(state="running", message="检测到缺少 pkg_resources，正在自动安装 setuptools…")
         try:
             import subprocess
-            # 注意：setuptools 82+ 已移除 pkg_resources，必须固定兼容版本（<=80.10.2）才能提供
             subprocess.run(
                 [sys.executable, "-m", "pip", "install", "setuptools<=80.10.2"],
                 capture_output=True,
@@ -108,12 +111,19 @@ def main() -> int:
             )
         except Exception:
             pass
+        try:
+            import pkg_resources  # noqa: F401
+            return True
+        except ImportError:
+            return False
+
+    _ensure_pkg_resources()
 
     try:
         from ultralytics import YOLO
     except ImportError as exc:
         if "pkg_resources" in str(exc) or "setuptools" in str(exc):
-            state.update(state="error", message="缺少 pkg_resources（setuptools），请执行：python -m pip install -U setuptools")
+            state.update(state="error", message="缺少 pkg_resources（setuptools），请执行：python -m pip install \"setuptools<=80.10.2\"")
         else:
             state.update(state="error", message="未安装 ultralytics，请先执行 pip install -r requirements.txt")
         return 1
@@ -138,11 +148,17 @@ def main() -> int:
             onnx_out = Path(
                 str(YOLO(str(src_path)).export(format="onnx", imgsz=config.get("imgsz", 640), opset=12, dynamic=False, verbose=False))
             )
-            # 第二步：rknn-toolkit2 将 ONNX 转换为 RKNN
+            # 第二步：rknn-toolkit2 将 ONNX 转换为 RKNN（内部依赖 pkg_resources，先确保可用）
+            if not _ensure_pkg_resources():
+                state.update(state="error", message="缺少 pkg_resources（setuptools）且自动安装失败，请执行：python -m pip install \"setuptools<=80.10.2\"")
+                return 1
             try:
                 from rknn.api import RKNN
-            except ImportError:
-                state.update(state="error", message="未安装 rknn-toolkit2，无法转换 RKNN 格式，请先 pip install rknn-toolkit2")
+            except ImportError as exc:
+                if "pkg_resources" in str(exc):
+                    state.update(state="error", message="rknn-toolkit2 依赖 pkg_resources，请执行：python -m pip install \"setuptools<=80.10.2\"")
+                else:
+                    state.update(state="error", message="未安装 rknn-toolkit2，无法转换 RKNN 格式，请先 pip install rknn-toolkit2")
                 return 1
             platform = str(config.get("rknn_platform", "rk3588"))
             out = src_path.with_suffix(".rknn")
