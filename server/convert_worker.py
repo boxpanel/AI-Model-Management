@@ -91,6 +91,23 @@ def main() -> int:
         state.update(state="error", message=f"不支持的导出格式：{fmt}")
         return 1
 
+    # 确保 pkg_resources（setuptools）可用：ultralytics 导出等环节会 import pkg_resources，缺失即失败
+    try:
+        import pkg_resources  # noqa: F401
+    except ImportError:
+        state.update(state="running", message="检测到缺少 pkg_resources，正在自动安装 setuptools…")
+        try:
+            import subprocess
+            subprocess.run(
+                [sys.executable, "-m", "pip", "install", "-U", "setuptools"],
+                capture_output=True,
+                text=True,
+                timeout=300,
+                check=False,
+            )
+        except Exception:
+            pass
+
     try:
         from ultralytics import YOLO
     except ImportError as exc:

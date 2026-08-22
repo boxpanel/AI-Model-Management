@@ -100,6 +100,23 @@ def main() -> int:
         del logs[:-300]
         state.update(logs=logs)
 
+    # 确保 pkg_resources（setuptools）可用：ultralytics 训练/导出等环节会 import pkg_resources，缺失即失败
+    try:
+        import pkg_resources  # noqa: F401
+    except ImportError:
+        emit_log("检测到缺少 pkg_resources，正在自动安装 setuptools…", "info")
+        try:
+            import subprocess
+            subprocess.run(
+                [sys.executable, "-m", "pip", "install", "-U", "setuptools"],
+                capture_output=True,
+                text=True,
+                timeout=300,
+                check=False,
+            )
+        except Exception:
+            pass
+
     try:
         from ultralytics import YOLO
     except ImportError as exc:
