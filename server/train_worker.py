@@ -102,9 +102,13 @@ def main() -> int:
 
     try:
         from ultralytics import YOLO
-    except ImportError:
-        emit_log("未安装 ultralytics，请先执行 pip install -r requirements.txt", "error")
-        state.update(state="error", message="缺少 ultralytics 依赖")
+    except ImportError as exc:
+        if "pkg_resources" in str(exc) or "setuptools" in str(exc):
+            emit_log("缺少 pkg_resources（setuptools），请执行：python -m pip install -U setuptools", "error")
+            state.update(state="error", message="缺少 pkg_resources（setuptools），请先安装 setuptools")
+        else:
+            emit_log("未安装 ultralytics，请先执行 pip install -r requirements.txt", "error")
+            state.update(state="error", message="缺少 ultralytics 依赖")
         return 1
 
     weights = config.get("weights_path") or ""

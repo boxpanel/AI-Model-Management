@@ -93,8 +93,11 @@ def main() -> int:
 
     try:
         from ultralytics import YOLO
-    except ImportError:
-        state.update(state="error", message="未安装 ultralytics，请先执行 pip install -r requirements.txt")
+    except ImportError as exc:
+        if "pkg_resources" in str(exc) or "setuptools" in str(exc):
+            state.update(state="error", message="缺少 pkg_resources（setuptools），请执行：python -m pip install -U setuptools")
+        else:
+            state.update(state="error", message="未安装 ultralytics，请先执行 pip install -r requirements.txt")
         return 1
 
     src_path = Path(source)
