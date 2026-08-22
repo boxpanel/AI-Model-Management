@@ -303,6 +303,7 @@
       showLogin();
     }
     async function downloadFile(relPath, name) {
+      try { relPath = decodeURIComponent(relPath); } catch (_) {}
       try {
         showToast('正在下载 ' + (name || relPath) + ' …');
         const response = await fetch(`${API_BASE}/api/models/download?path=${encodeURIComponent(relPath)}`, {
@@ -1235,6 +1236,7 @@
     ];
     let convertPath = '', convertTimer = null, convertJobId = '', converting = false;
     function openConvertModal(path, name) {
+      try { path = decodeURIComponent(path); } catch (_) {}
       convertPath = path;
       convertJobId = '';
       converting = false;
