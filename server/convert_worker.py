@@ -98,8 +98,9 @@ def main() -> int:
         state.update(state="running", message="检测到缺少 pkg_resources，正在自动安装 setuptools…")
         try:
             import subprocess
+            # 注意：setuptools 82+ 已移除 pkg_resources，必须固定兼容版本（<=80.10.2）才能提供
             subprocess.run(
-                [sys.executable, "-m", "pip", "install", "-U", "setuptools"],
+                [sys.executable, "-m", "pip", "install", "setuptools<=80.10.2"],
                 capture_output=True,
                 text=True,
                 timeout=300,

@@ -175,8 +175,9 @@ for ENV_NAME in "${MODEL_ENVS[@]}"; do
   fi
   echo "  - 安装依赖到 $ENV_NAME …"
   "$CONDA_BIN" run -n "$ENV_NAME" python -m pip install --upgrade pip
-  # 显式安装 setuptools：ultralytics 部分功能依赖 pkg_resources（setuptools 提供），缺失会导致转换/训练报错
-  "$CONDA_BIN" run -n "$ENV_NAME" python -m pip install -U setuptools
+  # 显式安装 setuptools：ultralytics/rknn-toolkit2 依赖 pkg_resources（setuptools 提供）。
+  # 注意：setuptools 82+ 已移除 pkg_resources，必须固定兼容版本（<=80.10.2）。
+  "$CONDA_BIN" run -n "$ENV_NAME" python -m pip install "setuptools<=80.10.2"
   "$CONDA_BIN" run -n "$ENV_NAME" python -m pip install -r requirements.txt
   if [ "$SKIP_RKNN" = "0" ]; then
     "$CONDA_BIN" run -n "$ENV_NAME" python -m pip install "rknn-toolkit2>=2.3.2" \
