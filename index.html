@@ -359,10 +359,9 @@
           switchToTrainingScreen(status.task_name);
           applyTrainingMetrics(status);
           addLog('已恢复上次会话，正在显示进行中的训练任务…', 'log-info');
-        } else if (status && (status.state === 'completed' || status.state === 'stopped')) {
-          switchToTrainingScreen(status.task_name);
-          applyTrainingMetrics(status);
-          addLog('检测到最近一次训练已结束，以下是其最终状态。', 'log-info');
+        } else if (status && (status.state === 'completed' || status.state === 'stopped' || status.state === 'error' || status.state === 'interrupted')) {
+          // 训练已结束：停留在初始化界面即可，仅提示最近一次训练结果
+          showToast('检测到最近一次训练已结束');
         }
       } catch (_) {}
     }
@@ -1357,12 +1356,13 @@
       else if (state === 'error') running.textContent = '训练失败';
       else if (state === 'interrupted') running.textContent = '训练已中断';
       else if (state === 'running') running.innerHTML = '<span class="pulse"></span>训练进行中';
-      // 训练结束后停止按钮变为「开始训练」，点击返回训练管理页面
-      const stopBtn = document.getElementById('stop');
-      if (stopBtn) {
-        stopBtn.textContent = (state === 'completed' || state === 'stopped' || state === 'error' || state === 'interrupted')
-          ? '开始训练'
-          : '停止训练';
+      // 训练结束：自动返回训练管理初始界面（无需再点击按钮）
+      if (state === 'completed' || state === 'stopped' || state === 'error' || state === 'interrupted') {
+        if (document.getElementById('training-screen').style.display !== 'none') {
+          document.getElementById('training-screen').style.display = 'none';
+          document.getElementById('setup-screen').style.display = 'block';
+          resetSetupForm();
+        }
       }
     }
     // 返回训练管理页面时初始化表单参数（模型 / 数据集 / 设备选择保持不变）
@@ -1448,14 +1448,6 @@
       }
     });
     document.getElementById('stop').addEventListener('click', async () => {
-      const stopBtn = document.getElementById('stop');
-      // 训练已结束：按钮为「开始训练」，点击返回训练管理页面并初始化
-      if (stopBtn && stopBtn.textContent === '开始训练') {
-        document.getElementById('training-screen').style.display = 'none';
-        document.getElementById('setup-screen').style.display = 'block';
-        resetSetupForm();
-        return;
-      }
       try {
         await api('/api/training/stop', { method: 'POST' });
         addLog('训练已由用户停止，当前检查点已保存。', 'log-ok');
