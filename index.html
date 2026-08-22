@@ -1456,7 +1456,11 @@
       try {
         await api('/api/training/stop', { method: 'POST' });
         addLog('训练已由用户停止，当前检查点已保存。', 'log-ok');
-        document.querySelector('.running').textContent = '训练已停止';
+        showToast('训练已停止');
+        // 停止后返回训练管理初始界面
+        document.getElementById('training-screen').style.display = 'none';
+        document.getElementById('setup-screen').style.display = 'block';
+        resetSetupForm();
       } catch (_) {
         showToast('停止训练失败');
       }
