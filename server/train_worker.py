@@ -130,17 +130,27 @@ def main() -> int:
                 yaml_candidate = base_candidate / data_yaml
                 break
     if not yaml_candidate.exists():
-        # 回退：使用 ultralytics 包自带的示例配置（coco8.yaml / coco128.yaml 等）
-        try:
-            builtin = Path(ultralytics.__file__).resolve().parent / "cfg" / "datasets" / data_yaml
-        except NameError:
-            builtin = Path()
-        if builtin.exists():
-            emit_log(f"本地未找到数据集配置，回退使用 ultralytics 内置配置：{builtin}", "info")
-            yaml_candidate = builtin
-        else:
+        # 回退：将 ultralytics 包自带示例配置复制到本地配置目录，并把 path 重写为绝对路径
+        import ultralytics
+        import yaml as _yaml
+        builtin = Path(ultralytics.__file__).resolve().parent / "cfg" / "datasets" / data_yaml
+        if not builtin.exists():
             emit_log(f"数据集配置文件不存在：{data_yaml}", "error")
             state.update(state="error", message=f"数据集配置文件不存在：{data_yaml}")
+            return 1
+        emit_log(f"本地未找到数据集配置，正在从 ultralytics 内置配置生成 {data_yaml}…", "info")
+        try:
+            builtin_data = _yaml.safe_load(builtin.read_text(encoding="utf-8")) or {}
+            local_cfg_dir = Path(config.get("datasets_cfg_dir") or str(base_dir / "datasets"))
+            # 内置配置的 path 相对自身目录，重写为本地绝对路径（数据目录 = 配置目录/<名称去扩展名>）
+            builtin_data["path"] = str((local_cfg_dir / Path(data_yaml).stem).resolve())
+            local_yaml = (local_cfg_dir / data_yaml).resolve()
+            local_yaml.parent.mkdir(parents=True, exist_ok=True)
+            local_yaml.write_text(_yaml.safe_dump(builtin_data, allow_unicode=True, sort_keys=False), encoding="utf-8")
+            yaml_candidate = local_yaml
+        except Exception as exc:  # noqa: BLE001
+            emit_log(f"生成数据集配置失败：{exc}", "error")
+            state.update(state="error", message=f"数据集配置生成失败：{exc}")
             return 1
     data_yaml = str(yaml_candidate)
 
