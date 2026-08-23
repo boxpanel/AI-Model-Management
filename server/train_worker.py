@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import signal
 import sys
 import time
@@ -138,7 +139,10 @@ def main() -> int:
             weights = str(candidate)
         elif "/" not in weights and "\\" not in weights and weights.lower().endswith((".pt", ".yaml")):
             # 官方模型名：.pt 为预训练权重（自动下载）、.yaml 为从零训练架构——保留原名交给 ultralytics
-            pass
+            # 界面「从 0 开始训练」的占位名（yolo11-0.yaml 等）映射为有效架构（yolo11n.yaml 等）
+            m = re.match(r"^yolo(11|v8|v5)-0\.yaml$", weights.lower())
+            if m:
+                weights = {"11": "yolo11n", "v8": "yolov8n", "v5": "yolov5nu"}[m.group(1)] + ".yaml"
         else:
             # 仓库路径不存在（可能已被删除）：回退默认权重
             weights = ""

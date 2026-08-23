@@ -1281,13 +1281,13 @@
       const displayName = base => base.replace(/^yolo(11|v8|v5)(.*)$/, (m, fam, size) => ({ 11: 'YOLO11', v8: 'YOLOv8', v5: 'YOLOv5' }[fam] + size));
       const names = official[modelVersion] || official['YOLO11'];
       select.innerHTML = '';
-      // 情况一：从 0 开始训练（不区分尺寸，使用模型大类默认架构，如 yolo11n.yaml）
+      // 情况一：从 0 开始训练（不区分尺寸，选项名 yolo11-0.yaml 等；实际训练由后端映射为默认架构 yolo11n.yaml）
       const scratchGroup = document.createElement('optgroup');
       scratchGroup.label = '从 0 开始训练（不使用预训练权重）';
-      const scratchBase = { 'YOLO11': 'yolo11n', 'YOLOv8': 'yolov8n', 'YOLOv5': 'yolov5nu' }[modelVersion] || 'yolo11n';
+      const scratchBase = { 'YOLO11': 'yolo11', 'YOLOv8': 'yolov8', 'YOLOv5': 'yolov5' }[modelVersion] || 'yolo11';
       const scratchOpt = document.createElement('option');
-      scratchOpt.value = scratchBase + '.yaml';
-      scratchOpt.textContent = '从 0 开始训练（' + scratchBase + '.yaml）';
+      scratchOpt.value = scratchBase + '-0.yaml';
+      scratchOpt.textContent = '从 0 开始训练（' + scratchBase + '-0.yaml）';
       scratchGroup.appendChild(scratchOpt);
       select.appendChild(scratchGroup);
       // 情况二：官方已训练好的预训练权重（训练时自动下载）
