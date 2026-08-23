@@ -14,11 +14,12 @@ MODEL_ENV_CANDIDATES = {
     "YOLOv5": ["YOLOv5", "yolov5", "ultralytics"],
 }
 
-# 模型版本（大类）→ 所属 Conda 环境家族（YOLO11 对应 YOLOv11 环境；尺寸变体由权重文件决定）
+# 模型版本 → 所属 Conda 环境家族：
+# 3 个大类（YOLO11/YOLOv8/YOLOv5）为当前前端选项；旧细分名（YOLO11n 等，可能来自浏览器缓存页面）同样映射到对应家族，避免前后端版本不一致时找不到环境
 VERSION_TO_FAMILY = {
-    "YOLO11": "YOLOv11",
-    "YOLOv8": "YOLOv8",
-    "YOLOv5": "YOLOv5",
+    "YOLO11": "YOLOv11", "YOLO11n": "YOLOv11", "YOLO11s": "YOLOv11", "YOLO11m": "YOLOv11", "YOLO11l": "YOLOv11", "YOLO11x": "YOLOv11",
+    "YOLOv8": "YOLOv8", "YOLOv8n": "YOLOv8", "YOLOv8s": "YOLOv8", "YOLOv8m": "YOLOv8", "YOLOv8l": "YOLOv8", "YOLOv8x": "YOLOv8",
+    "YOLOv5": "YOLOv5", "YOLOv5nu": "YOLOv5", "YOLOv5su": "YOLOv5", "YOLOv5mu": "YOLOv5", "YOLOv5lu": "YOLOv5", "YOLOv5xu": "YOLOv5",
 }
 
 
