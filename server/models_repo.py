@@ -23,7 +23,7 @@ def _guess_model_version(name: str) -> str:
 
 
 def _model_version_for(path: Path, source: str, task_versions: dict[str, str]) -> str:
-    """解析权重条目的模型版本：文件名 → 同目录源 .pt（转换产物继承）→ 训练任务记录。"""
+    """解析权重条目的模型版本：文件名 → 同目录源 .pt（转换产物继承）→ 训练任务记录 → 输出目录中间层大类。"""
     ver = _guess_model_version(path.name)
     if ver:
         return ver
@@ -34,7 +34,15 @@ def _model_version_for(path: Path, source: str, task_versions: dict[str, str]) -
         if ver:
             return ver
     if source == "training":
-        return task_versions.get(path.parent.parent.name, "")
+        ver = task_versions.get(path.parent.parent.name, "")
+        if not ver:
+            # 最终兜底：从输出目录中间层解析大类（runs/YOLO11/<任务>/weights/... → YOLO11）
+            parts = path.parts
+            if "runs" in parts:
+                idx = parts.index("runs")
+                if idx + 1 < len(parts):
+                    ver = parts[idx + 1]
+        return ver
     return ""
 
 
@@ -90,7 +98,9 @@ def list_models(base_dir: Path, runs_dirs: list[Path] | None = None, db=None) ->
                 ver = _guess_model_version(Path(wp).name) if wp else ""
                 if not ver and task.get("model_version"):
                     ver = task["model_version"]  # 回退到模型大类
-                task_versions[tn] = ver
+                # 仅在解析出版本时写入，避免空值挡住下方 config.json 文件兜底
+                if ver:
+                    task_versions[tn] = ver
         except Exception:
             pass
     # 兜底：数据库不可用/记录缺失时，直接从 runs/tasks/<任务>/config.json 读权重名（不覆盖 db 结果）
