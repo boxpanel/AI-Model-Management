@@ -192,6 +192,7 @@
       <p class="hint" id="convert-source" style="margin-bottom:16px"></p>
       <div class="convert-formats" id="convert-formats"></div>
       <div class="convert-status" id="convert-status"></div>
+      <div class="convert-logs" id="convert-logs" style="display:none;max-height:180px;overflow-y:auto;margin-top:10px;padding:8px 10px;background:#f8faff;border-radius:8px;font-size:12px;font-family:monospace;white-space:pre-wrap;line-height:1.6"></div>
       <div class="actions"><button class="btn" id="convert-cancel" type="button">取消</button><button class="btn primary" id="convert-submit" type="button">开始转换</button></div>
     </div>
   </div>
@@ -1256,6 +1257,8 @@
       document.getElementById('convert-submit').disabled = false;
       document.getElementById('convert-submit').style.display = '';
       document.getElementById('convert-cancel').textContent = '取消';
+      const logsEl = document.getElementById('convert-logs');
+      if (logsEl) { logsEl.style.display = 'none'; logsEl.textContent = ''; }
       document.getElementById('convert-modal').style.display = 'flex';
     }
     function closeConvertModal() {
@@ -1291,6 +1294,12 @@
       try {
         const st = await api('/api/models/convert?job=' + encodeURIComponent(jobId));
         const statusEl = document.getElementById('convert-status');
+        const logsEl = document.getElementById('convert-logs');
+        if (logsEl && Array.isArray(st.logs) && st.logs.length) {
+          logsEl.style.display = '';
+          logsEl.textContent = st.logs.map(l => l.message).join('\n');
+          logsEl.scrollTop = logsEl.scrollHeight;
+        }
         if (st.state === 'completed') {
           if (convertTimer) { clearInterval(convertTimer); convertTimer = null; }
           converting = false;

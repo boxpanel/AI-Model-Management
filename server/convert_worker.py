@@ -167,8 +167,11 @@ def main() -> int:
                 rknn.config(mean_values=[[0, 0, 0]], std_values=[[255, 255, 255]], target_platform=platform)
                 if rknn.load_onnx(model=str(onnx_out)) != 0:
                     raise RuntimeError("加载 ONNX 模型失败")
+                # 构建 IR 图在 CPU 上进行，首次构建可能需要数分钟，先更新状态避免用户误以为卡死
+                state.update(state="running", message="正在构建 RKNN 模型（首次构建可能需要数分钟，请耐心等待）…")
                 if rknn.build(do_quantization=False) != 0:
                     raise RuntimeError("构建 RKNN 模型失败")
+                state.update(state="running", message="正在导出 RKNN 文件…")
                 if rknn.export_rknn(str(out)) != 0:
                     raise RuntimeError("导出 RKNN 模型失败")
             except AttributeError as exc:
