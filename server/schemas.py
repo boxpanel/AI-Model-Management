@@ -18,7 +18,7 @@ class TrainingState(str, Enum):
 
 class TrainingStartRequest(BaseModel):
     task_name: str = "yolo-exp-001"
-    model_version: str = "YOLOv11"
+    model_version: str = "YOLO11n"
     weights_path: Optional[str] = None
     dataset: str = "coco8.yaml"
     dataset_root: str = "datasets/coco8"

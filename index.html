@@ -80,7 +80,7 @@
     </aside>
     <main>
       <div class="view active" data-view="train">
-      <div class="dashboard-status-bar"><div class="status" id="hardware-status"><i></i>正在检测显卡</div><div class="environment-controls"><label class="dashboard-model-select" for="model">模型版本 <select id="model"><option selected>YOLOv11</option><option>YOLOv8</option><option>YOLOv5</option></select></label><div class="status" id="conda-status"><i></i>环境已激活：YOLOv11</div></div></div>
+      <div class="dashboard-status-bar"><div class="status" id="hardware-status"><i></i>正在检测显卡</div><div class="environment-controls"><label class="dashboard-model-select" for="model">模型版本 <select id="model"><option selected>YOLO11n</option><option>YOLO11s</option><option>YOLO11m</option><option>YOLO11l</option><option>YOLO11x</option><option>YOLOv8n</option><option>YOLOv8s</option><option>YOLOv8m</option><option>YOLOv8l</option><option>YOLOv8x</option><option>YOLOv5nu</option><option>YOLOv5su</option><option>YOLOv5mu</option><option>YOLOv5lu</option><option>YOLOv5xu</option></select></label><div class="status" id="conda-status"><i></i>环境已激活：YOLOv11</div></div></div>
       <section class="card hardware-card" id="hardware-dashboard"><div class="hardware-title"><div><h2>硬件监控</h2><span class="text-small" id="hardware-source">等待本地训练服务上报实时使用率</span></div></div><div class="gauges"><div class="gauge"><div class="dial" id="cpu-dial"><b id="cpu-percent">--</b></div><div><h3>系统 CPU</h3><p id="cpu-model">正在读取 CPU 配置</p><span class="gauge-value" id="cpu-usage">使用率待上报</span></div></div><div class="gauge"><div class="dial" id="ram-dial"><b id="ram-percent">--</b></div><div><h3>系统内存</h3><p id="ram-model">正在读取内存配置</p><span class="gauge-value" id="ram-usage">使用率待上报</span></div></div><div class="gauge"><div class="dial" id="disk-dial"><b id="disk-percent">--</b></div><div><h3>硬盘</h3><p id="disk-model">正在读取磁盘配置</p><span class="gauge-value" id="disk-usage">使用率待上报</span></div></div></div><div class="gauges" id="gpu-gauges"></div></section>
       <div id="setup-screen">
       <header><div><h1>新建训练任务</h1><p class="subtitle">配置 YOLO 训练参数，创建一个新的模型训练任务。</p></div></header>
@@ -470,7 +470,7 @@
 
     // 资源预估：根据表单当前实际选择动态刷新（模型 / 数据集 / 设备 / 输出目录）
     function updateEstimate() {
-      const model = document.getElementById('model').value || 'YOLOv11';
+      const model = document.getElementById('model').value || 'YOLO11n';
       const dsName = document.getElementById('dataset-config').value || 'custom-data.yaml';
       const profile = datasetProfiles[dsName] || datasetProfiles['custom-data.yaml'];
       const task = document.getElementById('task-name').value || 'yolo-exp-001';
@@ -1181,7 +1181,11 @@
       const select = document.getElementById('weights-select');
       if (!select) return;
       const modelVersion = document.getElementById('model').value;
-      const defaults = { 'YOLOv11': 'yolo11n.pt', 'YOLOv8': 'yolov8n.pt', 'YOLOv5': 'yolov5nu.pt' };
+      const defaults = {
+        'YOLO11n': 'yolo11n.pt', 'YOLO11s': 'yolo11s.pt', 'YOLO11m': 'yolo11m.pt', 'YOLO11l': 'yolo11l.pt', 'YOLO11x': 'yolo11x.pt',
+        'YOLOv8n': 'yolov8n.pt', 'YOLOv8s': 'yolov8s.pt', 'YOLOv8m': 'yolov8m.pt', 'YOLOv8l': 'yolov8l.pt', 'YOLOv8x': 'yolov8x.pt',
+        'YOLOv5nu': 'yolov5nu.pt', 'YOLOv5su': 'yolov5su.pt', 'YOLOv5mu': 'yolov5mu.pt', 'YOLOv5lu': 'yolov5lu.pt', 'YOLOv5xu': 'yolov5xu.pt'
+      };
       select.innerHTML = '';
       const def = document.createElement('option');
       def.value = '';

@@ -139,8 +139,12 @@ def main() -> int:
         else:
             weights = ""
     if not weights:
-        model_weights = {"YOLOv11": "yolo11n.pt", "YOLOv8": "yolov8n.pt", "YOLOv5": "yolov5nu.pt"}
-        weights = model_weights.get(config.get("model_version", "YOLOv11"), "yolo11n.pt")
+        model_weights = {
+            "YOLO11n": "yolo11n.pt", "YOLO11s": "yolo11s.pt", "YOLO11m": "yolo11m.pt", "YOLO11l": "yolo11l.pt", "YOLO11x": "yolo11x.pt",
+            "YOLOv8n": "yolov8n.pt", "YOLOv8s": "yolov8s.pt", "YOLOv8m": "yolov8m.pt", "YOLOv8l": "yolov8l.pt", "YOLOv8x": "yolov8x.pt",
+            "YOLOv5nu": "yolov5nu.pt", "YOLOv5su": "yolov5su.pt", "YOLOv5mu": "yolov5mu.pt", "YOLOv5lu": "yolov5lu.pt", "YOLOv5xu": "yolov5xu.pt",
+        }
+        weights = model_weights.get(config.get("model_version", "YOLO11n"), "yolo11n.pt")
 
     data_yaml = (config.get("dataset") or "coco8.yaml").strip()
     # 解析数据集配置文件：优先设置的自定义配置目录，其次项目内 datasets/，再项目根

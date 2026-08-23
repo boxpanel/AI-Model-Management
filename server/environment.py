@@ -17,9 +17,9 @@ from .schemas import EnvironmentResponse
 
 
 MODEL_WEIGHTS = {
-    "YOLOv11": "yolo11n.pt",
-    "YOLOv8": "yolov8n.pt",
-    "YOLOv5": "yolov5nu.pt",
+    "YOLO11n": "yolo11n.pt", "YOLO11s": "yolo11s.pt", "YOLO11m": "yolo11m.pt", "YOLO11l": "yolo11l.pt", "YOLO11x": "yolo11x.pt",
+    "YOLOv8n": "yolov8n.pt", "YOLOv8s": "yolov8s.pt", "YOLOv8m": "yolov8m.pt", "YOLOv8l": "yolov8l.pt", "YOLOv8x": "yolov8x.pt",
+    "YOLOv5nu": "yolov5nu.pt", "YOLOv5su": "yolov5su.pt", "YOLOv5mu": "yolov5mu.pt", "YOLOv5lu": "yolov5lu.pt", "YOLOv5xu": "yolov5xu.pt",
 }
 
 def _cpu_model() -> str:
