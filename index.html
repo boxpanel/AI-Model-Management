@@ -1259,9 +1259,13 @@
     document.getElementById('dataset-config').addEventListener('change', event => { /* 数据集切换：类别数由数据集 YAML 的 nc 决定 */ updateEstimate(); });
     document.getElementById('task-name').addEventListener('input', () => updateEstimate());
     updateEstimate(); // 页面初始化时刷新资源预估
+    // loadWeightsSelect 并发调用令牌：async 函数交错执行会重复追加分组（如两个「仓库中的权重文件」），
+    // 令牌保证并发时只有最后一次调用生效
+    let loadWeightsSelectToken = 0;
     async function loadWeightsSelect() {
       const select = document.getElementById('weights-select');
       if (!select) return;
+      const token = ++loadWeightsSelectToken;
       const modelVersion = document.getElementById('model').value;
       const defaults = {
         'YOLO11': 'yolo11n.pt',
@@ -1300,8 +1304,10 @@
       // 情况三：仓库中的权重文件（仅 .pt 格式——ONNX/Engine 等转换产物不能用于训练，不显示）
       const repoGroup = document.createElement('optgroup');
       repoGroup.label = '仓库中的权重文件（.pt）';
+      select.appendChild(repoGroup);  // 先挂空分组，await 后填充；过期调用直接丢弃不追加
       try {
         const items = await api('/api/models');
+        if (token !== loadWeightsSelectToken) return;  // 已有更新的调用，丢弃本次结果
         const ptItems = (Array.isArray(items) ? items : []).filter(item => item.path && item.path.toLowerCase().endsWith('.pt'));
         if (ptItems.length) {
           ptItems.forEach(item => {
@@ -1314,6 +1320,7 @@
           repoGroup.appendChild(new Option('（仓库暂无 .pt 权重文件，可前往模型仓库上传）', ''));
         }
       } catch (_) {
+        if (token !== loadWeightsSelectToken) return;
         OFFLINE_MODELS().forEach(item => {
           const opt = document.createElement('option');
           opt.value = '';
@@ -1321,7 +1328,7 @@
           repoGroup.appendChild(opt);
         });
       }
-      select.appendChild(repoGroup);
+      if (token !== loadWeightsSelectToken) return;
       // 默认选中官方预训练 n 尺寸（等价原「使用默认权重」）；上传的权重优先选中
       select.value = defaults[modelVersion] || 'yolo11n.pt';
       if (uploadedWeightsPath) select.value = uploadedWeightsPath;
