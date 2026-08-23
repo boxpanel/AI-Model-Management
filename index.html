@@ -1257,11 +1257,46 @@
     const COCO_NAMES = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'];
     const datasetProfiles = { 'coco8.yaml': { path:'datasets/coco8', split:'4 / 4 / -', classes:'80 类（COCO）', count:80, train:'images/train', val:'images/val', test:'', names:COCO_NAMES, download:'https://github.com/ultralytics/assets/releases/download/v0.0.0/coco8.zip', labels:'labels/train.cache' }, 'coco128.yaml': { path:'datasets/coco128', split:'128 / 128 / -', classes:'80 类（COCO）', count:128, train:'images/train2017', val:'images/train2017', test:'', names:COCO_NAMES, download:'https://github.com/ultralytics/assets/releases/download/v0.0.0/coco128.zip', labels:'labels/train2017.cache' }, 'traffic-object-v3.yaml': { path:'datasets/traffic-object-v3', split:'9,984 / 2,496 / -', classes:'4 类', count:4, train:'images/train', val:'images/val', test:'images/test', names:['person', 'car', 'truck', 'bus'], download:'', labels:'labels/train.cache' }, 'custom-data.yaml': { path:'', split:'请在 YAML 中配置', classes:'自定义类别', count:'', train:'', val:'', test:'', names:[], download:'', labels:'' } };
     document.getElementById('dataset-config').addEventListener('change', event => { /* 数据集切换：类别数由数据集 YAML 的 nc 决定 */ updateEstimate(); });
-    document.getElementById('task-name').addEventListener('input', () => updateEstimate());
+    // 任务名自动递增：同具体尺寸（YOLO11n 等）的历史任务占用 yolo-exp-001 时自动顺延为 002；用户手动改过后不再干预
+    let taskNameManual = false;
+    document.getElementById('task-name').addEventListener('input', () => { taskNameManual = true; updateEstimate(); });
+    document.getElementById('weights-select').addEventListener('change', () => suggestTaskName());
     updateEstimate(); // 页面初始化时刷新资源预估
     // loadWeightsSelect 并发调用令牌：async 函数交错执行会重复追加分组（如两个「仓库中的权重文件」），
     // 令牌保证并发时只有最后一次调用生效
     let loadWeightsSelectToken = 0;
+    function currentTaskSize() {
+      // 从当前「选择模型文件」解析具体尺寸（YOLO11n / YOLOv8x 等），解析不出返回空
+      const select = document.getElementById('weights-select');
+      const opt = select && select.options[select.selectedIndex];
+      if (!opt) return '';
+      if (opt.dataset && opt.dataset.size) return opt.dataset.size;  // 仓库权重：后端给出的 model_version
+      return parseModelVersion(opt.value);  // 官方 .pt / 从0 .yaml
+    }
+    function taskSizeOf(task) {
+      // 从任务记录解析该任务训练时使用的具体尺寸（actual_model_version 或权重文件名）
+      let cfg = {};
+      try { cfg = JSON.parse(task.config_json || '{}'); } catch (_) {}
+      const actual = cfg.actual_model_version || '';
+      if (actual) return actual;
+      const wp = (cfg.weights_path || '').trim();
+      if (wp) return parseModelVersion(wp.split('/').pop());
+      return '';
+    }
+    async function suggestTaskName() {
+      // 同具体尺寸的历史任务占用 yolo-exp-001 时，自动顺延为 yolo-exp-002…（仅当前能解析出具体尺寸时生效）
+      const input = document.getElementById('task-name');
+      if (!input || taskNameManual) return;
+      const size = currentTaskSize();
+      if (!size) return;
+      let tasks = [];
+      try { tasks = await api('/api/tasks'); } catch (_) { return; }
+      const used = new Set();
+      (Array.isArray(tasks) ? tasks : []).forEach(t => { if (taskSizeOf(t) === size) used.add(t.task_name); });
+      let n = 1;
+      while (used.has('yolo-exp-' + String(n).padStart(3, '0'))) n++;
+      input.value = 'yolo-exp-' + String(n).padStart(3, '0');
+    }
     async function loadWeightsSelect() {
       const select = document.getElementById('weights-select');
       if (!select) return;
@@ -1312,6 +1347,7 @@
           ptItems.forEach(item => {
             const opt = document.createElement('option');
             opt.value = item.path;
+            opt.setAttribute('data-size', item.model_version || '');
             // 显示具体尺寸（YOLO11n 等）与训练方式（从0训练 / 预训练），便于区分权重来源
             const modeText = item.training_mode === 'scratch' ? '从0训练' : item.training_mode === 'pretrained' ? '预训练' : '';
             const detail = [item.model_version || '', modeText].filter(Boolean).join(' · ');
@@ -1472,7 +1508,7 @@
       closeConvertModal();
     });
     document.getElementById('convert-modal-close').addEventListener('click', closeConvertModal);
-    loadWeightsSelect();
+    loadWeightsSelect().then(() => suggestTaskName());
     function addLog(text, kind='', taskName='') {
       if (taskName) {
         const card = document.getElementById(taskCardId(taskName));
@@ -1575,7 +1611,7 @@
         updateDashboardStatus(Object.values(trainingJobs));
         showToast('训练任务「' + data.task_name + '」已结束');
         // 训练产出 best.pt 已生成：刷新「选择模型文件」下拉，训练页即可直接选用，无需刷新页面
-        loadWeightsSelect();
+        loadWeightsSelect().then(() => suggestTaskName());
         loadModels();
       } else if (state === 'running') {
         refreshGpuOccupancy();
@@ -1671,7 +1707,7 @@
       status.className = 'status conda-pending';
       status.innerHTML = '<i></i>正在检测环境：' + trainingEnv;
       document.getElementById('training-env-name').textContent = trainingEnv;
-      loadWeightsSelect();
+      loadWeightsSelect().then(() => suggestTaskName());
       refreshEnvironment(trainingEnv);
       updateEstimate();
     });
