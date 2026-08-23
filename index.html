@@ -191,6 +191,10 @@
       <div class="modal-head"><h2>模型转换</h2><button class="modal-close" id="convert-modal-close" type="button">×</button></div>
       <p class="hint" id="convert-source" style="margin-bottom:16px"></p>
       <div class="convert-formats" id="convert-formats"></div>
+      <div class="convert-progress" id="convert-progress" style="display:none;margin-top:14px;align-items:center;gap:10px">
+        <div style="flex:1;height:8px;background:#e8ecf4;border-radius:6px;overflow:hidden"><div id="convert-progress-bar" style="height:100%;width:0%;background:#3b82f6;border-radius:6px;transition:width .5s"></div></div>
+        <span id="convert-pct" style="font-size:13px;color:var(--muted);min-width:42px;text-align:right">0%</span>
+      </div>
       <div class="convert-status" id="convert-status"></div>
       <div class="convert-logs" id="convert-logs" style="display:none;max-height:180px;overflow-y:auto;margin-top:10px;padding:8px 10px;background:#f8faff;border-radius:8px;font-size:12px;font-family:monospace;white-space:pre-wrap;line-height:1.6"></div>
       <div class="actions"><button class="btn" id="convert-cancel" type="button">取消</button><button class="btn primary" id="convert-submit" type="button">开始转换</button></div>
@@ -1259,6 +1263,10 @@
       document.getElementById('convert-cancel').textContent = '取消';
       const logsEl = document.getElementById('convert-logs');
       if (logsEl) { logsEl.style.display = 'none'; logsEl.textContent = ''; }
+      const prog = document.getElementById('convert-progress');
+      if (prog) { prog.style.display = 'none'; }
+      const pbar = document.getElementById('convert-progress-bar'); if (pbar) pbar.style.width = '0%';
+      const ppct = document.getElementById('convert-pct'); if (ppct) ppct.textContent = '0%';
       document.getElementById('convert-modal').style.display = 'flex';
     }
     function closeConvertModal() {
@@ -1299,6 +1307,14 @@
           logsEl.style.display = '';
           logsEl.textContent = st.logs.map(l => l.message).join('\n');
           logsEl.scrollTop = logsEl.scrollHeight;
+        }
+        if (st.progress != null) {
+          const progWrap = document.getElementById('convert-progress');
+          if (progWrap) progWrap.style.display = '';
+          const pbar = document.getElementById('convert-progress-bar');
+          if (pbar) pbar.style.width = Math.min(100, Math.max(0, Number(st.progress))) + '%';
+          const ppct = document.getElementById('convert-pct');
+          if (ppct) ppct.textContent = Math.round(Number(st.progress)) + '%';
         }
         if (st.state === 'completed') {
           if (convertTimer) { clearInterval(convertTimer); convertTimer = null; }

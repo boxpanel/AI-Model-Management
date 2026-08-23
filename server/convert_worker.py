@@ -140,14 +140,16 @@ def main() -> int:
     if fmt == "engine" and str(device).lower() == "cpu":
         device = "0"
 
-    state.update(state="running", message=f"正在导出为 {fmt}…")
+    state.update(state="running", message=f"正在导出为 {fmt}…", progress=5)
 
     try:
         if fmt == "rknn":
             # 第一步：导出 ONNX（rknn-toolkit2 从 ONNX 转换，opset 12 兼容性最佳）
+            state.update(state="running", message="正在导出 ONNX 中间文件…", progress=10)
             onnx_out = Path(
                 str(YOLO(str(src_path)).export(format="onnx", imgsz=config.get("imgsz", 640), opset=12, dynamic=False, verbose=False))
             )
+            state.update(state="running", message="正在加载 ONNX 模型…", progress=30)
             # 第二步：rknn-toolkit2 将 ONNX 转换为 RKNN（内部依赖 pkg_resources，先确保可用）
             if not _ensure_pkg_resources():
                 state.update(state="error", message="缺少 pkg_resources（setuptools）且自动安装失败，请执行：python -m pip install \"setuptools<=80.10.2\"")
@@ -168,12 +170,27 @@ def main() -> int:
                 if rknn.load_onnx(model=str(onnx_out)) != 0:
                     raise RuntimeError("加载 ONNX 模型失败")
                 # 构建 IR 图在 CPU 上进行，首次构建可能需要数分钟，先更新状态避免用户误以为卡死
-                state.update(state="running", message="正在构建 RKNN 模型（首次构建可能需要数分钟，请耐心等待）…")
+                state.update(state="running", message="正在构建 RKNN 模型（首次构建可能需要数分钟，请耐心等待）…", progress=45)
+                # 构建期间用后台线程平滑推进进度（45 → 80），让用户直观看到仍在进行
+                import threading
+                def _progress_pump() -> None:
+                    import time as _t
+                    step = 0
+                    while step < 35 and not stop_event["stop"]:  # 35 × 5s ≈ 3 分钟封顶
+                        _t.sleep(5)
+                        step += 1
+                        cur = state.read().get("progress", 0) or 0
+                        if cur >= 80:
+                            break
+                        state.update(progress=min(80, cur + 1))
+                pump = threading.Thread(target=_progress_pump, daemon=True)
+                pump.start()
                 if rknn.build(do_quantization=False) != 0:
                     raise RuntimeError("构建 RKNN 模型失败")
-                state.update(state="running", message="正在导出 RKNN 文件…")
+                state.update(state="running", message="正在导出 RKNN 文件…", progress=85)
                 if rknn.export_rknn(str(out)) != 0:
                     raise RuntimeError("导出 RKNN 模型失败")
+                state.update(progress=95)
             except AttributeError as exc:
                 if "onnx" in str(exc):
                     # 新版 onnx 移除了顶层 mapping 属性，rknn-toolkit2 旧代码依赖它
@@ -186,6 +203,7 @@ def main() -> int:
                 rknn.release()
             out_path = out
         else:
+            state.update(state="running", message=f"正在导出为 {fmt}…", progress=15)
             out_path = Path(
                 str(
                     YOLO(str(src_path)).export(
@@ -196,6 +214,7 @@ def main() -> int:
                     )
                 )
             )
+            state.update(progress=95)
         if stop_event["stop"]:
             state.update(state="stopped", message="转换已停止")
             return 0
