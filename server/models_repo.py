@@ -93,6 +93,22 @@ def list_models(base_dir: Path, runs_dirs: list[Path] | None = None, db=None) ->
                 task_versions[tn] = ver
         except Exception:
             pass
+    # 兜底：数据库不可用/记录缺失时，直接从 runs/tasks/<任务>/config.json 读权重名（不覆盖 db 结果）
+    try:
+        for cfg_path in sorted((base_dir / "runs" / "tasks").glob("*/config.json")):
+            try:
+                cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+            except Exception:
+                continue
+            tn = cfg.get("task_name") or cfg_path.parent.name
+            wp = (cfg.get("weights_path") or "").strip()
+            ver = _guess_model_version(Path(wp).name) if wp else ""
+            if not ver and cfg.get("model_version"):
+                ver = cfg["model_version"]
+            if ver:
+                task_versions.setdefault(tn, ver)
+    except Exception:
+        pass
 
     if uploads.exists():
         for path in sorted(uploads.iterdir()):
