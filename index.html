@@ -730,9 +730,9 @@
         { name: 'yolo-exp-002/best.pt', path: 'runs/yolo-exp-002/weights/best.pt', size: '6.4 MB', tag: '训练产出', time: daysAgo(1) }
       ];
     };
-    // 前端兜底：从文件名解析模型版本（yolo11n.pt → YOLO11n、yolov5nu.pt → YOLOv5nu），解析不出返回空
+    // 前端兜底：从文件名解析模型版本（yolo11n.pt → YOLO11n、yolov5nu.pt → YOLOv5nu、yolo11n.yaml → YOLO11n），解析不出返回空
     function parseModelVersion(name) {
-      const m = String(name || '').toLowerCase().match(/^yolo(11|v8|v5)([nsmlx])(u)?\.(pt|onnx|engine|torchscript|xml|rknn)$/);
+      const m = String(name || '').toLowerCase().match(/^yolo(11|v8|v5)([nsmlx])(u)?\.(pt|onnx|engine|torchscript|xml|rknn|yaml)$/);
       if (!m) return '';
       return ({ 11: 'YOLO11', v8: 'YOLOv8', v5: 'YOLOv5' })[m[1]] + m[2] + (m[3] || '');
     }

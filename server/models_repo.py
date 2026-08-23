@@ -13,8 +13,8 @@ DIR_MARKER = "_model"
 
 
 def _guess_model_version(name: str) -> str:
-    """从权重文件名解析模型版本（yolo11n.pt → YOLO11n、yolov5nu.pt → YOLOv5nu、yolo11x.onnx → YOLO11x），无法识别返回空。"""
-    m = re.match(r"^yolo(11|v8|v5)([nsmlx])(u)?\.(pt|onnx|engine|torchscript|xml|rknn)$", name.lower())
+    """从权重文件名解析模型版本（yolo11n.pt → YOLO11n、yolov5nu.pt → YOLOv5nu、yolo11x.onnx → YOLO11x、yolo11n.yaml → YOLO11n），无法识别返回空。"""
+    m = re.match(r"^yolo(11|v8|v5)([nsmlx])(u)?\.(pt|onnx|engine|torchscript|xml|rknn|yaml)$", name.lower())
     if not m:
         return ""
     fam, size, u = m.groups()
