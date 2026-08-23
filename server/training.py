@@ -295,6 +295,14 @@ class TrainingManager:
         project_dir.mkdir(parents=True, exist_ok=True)
         payload["project_dir"] = str(project_dir)
         payload["datasets_cfg_dir"] = str(cfg_dir)
+        # 记录实际使用的模型尺寸（从权重文件名解析，如 yolo11x.pt → YOLO11x、yolo11n.yaml → YOLO11n），
+        # 供模型仓库为训练产出权重显示具体尺寸；解析不出时回退模型大类
+        _wp = (payload.get("weights_path") or "").strip()
+        _m = re.match(r"^yolo(11|v8|v5)([nsmlx])(u)?\.(pt|onnx|engine|torchscript|xml|rknn|yaml)$", Path(_wp).name.lower()) if _wp else None
+        payload["actual_model_version"] = (
+            {"11": "YOLO11", "v8": "YOLOv8", "v5": "YOLOv5"}[_m.group(1)] + _m.group(2) + (_m.group(3) or "")
+            if _m else config.model_version
+        )
 
         state_path = self._job_state_path(config.task_name)
         config_path = self._job_config_path(config.task_name)

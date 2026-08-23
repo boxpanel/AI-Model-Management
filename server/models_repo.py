@@ -88,14 +88,17 @@ def list_models(base_dir: Path, runs_dirs: list[Path] | None = None, db=None) ->
                 tn = task.get("task_name")
                 if not tn:
                     continue
-                # 优先从任务配置的权重文件名解析具体尺寸（yolo11n.pt → YOLO11n）
+                # 优先使用训练时记录的精确尺寸（actual_model_version，如 YOLO11x）；
+                # 老任务无该字段时回退解析权重文件名（yolo11n.pt → YOLO11n）
                 cfg = task.get("config_json") or "{}"
                 try:
                     cfg_data = json.loads(cfg) if isinstance(cfg, str) else (cfg or {})
                 except Exception:
                     cfg_data = {}
-                wp = (cfg_data.get("weights_path") or "").strip()
-                ver = _guess_model_version(Path(wp).name) if wp else ""
+                ver = cfg_data.get("actual_model_version") or ""
+                if not ver:
+                    wp = (cfg_data.get("weights_path") or "").strip()
+                    ver = _guess_model_version(Path(wp).name) if wp else ""
                 if not ver and task.get("model_version"):
                     ver = task["model_version"]  # 回退到模型大类
                 # 仅在解析出版本时写入，避免空值挡住下方 config.json 文件兜底
@@ -111,8 +114,10 @@ def list_models(base_dir: Path, runs_dirs: list[Path] | None = None, db=None) ->
             except Exception:
                 continue
             tn = cfg.get("task_name") or cfg_path.parent.name
-            wp = (cfg.get("weights_path") or "").strip()
-            ver = _guess_model_version(Path(wp).name) if wp else ""
+            ver = cfg.get("actual_model_version") or ""
+            if not ver:
+                wp = (cfg.get("weights_path") or "").strip()
+                ver = _guess_model_version(Path(wp).name) if wp else ""
             if not ver and cfg.get("model_version"):
                 ver = cfg["model_version"]
             if ver:
