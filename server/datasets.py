@@ -72,13 +72,23 @@ class DatasetService:
     def _ensure_builtin_yamls(self) -> None:
         """启动时自动生成内置预设 yaml（缺失时），保证前端预设选中后即可直接训练。"""
         presets = [
-            ("coco8.yaml", "coco8", "images/train", "images/val", "", 80, COCO_NAMES, "https://ultralytics.com/assets/coco8.zip"),
-            ("coco128.yaml", "coco128", "images/train2017", "images/train2017", "", 80, COCO_NAMES, "https://ultralytics.com/assets/coco128.zip"),
+            # download 使用 ultralytics 官方 GitHub releases 地址（旧版 ultralytics.com/assets 已失效）
+            ("coco8.yaml", "coco8", "images/train", "images/val", "", 80, COCO_NAMES, "https://github.com/ultralytics/assets/releases/download/v0.0.0/coco8.zip"),
+            ("coco128.yaml", "coco128", "images/train2017", "images/train2017", "", 80, COCO_NAMES, "https://github.com/ultralytics/assets/releases/download/v0.0.0/coco128.zip"),
             ("traffic-object-v3.yaml", "traffic-object-v3", "images/train", "images/val", "images/test", 4, TRAFFIC_NAMES, ""),
         ]
         for name, data_dir, train, val, test, nc, names, download in presets:
             target = self.datasets_dir / name
             if target.exists():
+                # 旧版本生成的 yaml 可能携带已失效的 download 地址（ultralytics.com/assets），自动替换为官方地址
+                try:
+                    existing = yaml.safe_load(target.read_text(encoding="utf-8")) or {}
+                    old_dl = existing.get("download") or ""
+                    if old_dl and download and "github.com/ultralytics/assets" not in old_dl:
+                        existing["download"] = download
+                        target.write_text(yaml.safe_dump(existing, allow_unicode=True, sort_keys=False), encoding="utf-8")
+                except Exception:
+                    pass
                 continue
             payload = {
                 # path 用绝对路径，避免 ultralytics 按 yaml 所在目录解析相对路径时定位错误
