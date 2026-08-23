@@ -264,7 +264,25 @@ def main() -> int:
                 rknn.release()
             out_path = out
         else:
-            state.update(state="running", message=f"正在导出为 {fmt}…", progress=15)
+            # NCNN 首次导出需下载 pnnx 工具链、OpenVINO 转换耗时，过程无反馈容易误以为卡死。
+            # 提示可能耗时，并用后台线程平滑推进进度（15 → 85）
+            hint = "（首次转换 NCNN 需下载 pnnx 工具链，可能需要数分钟，请耐心等待）" if fmt == "ncnn" else ""
+            state.update(state="running", message=f"正在导出为 {fmt}…{hint}", progress=15)
+            import threading
+
+            def _progress_pump() -> None:
+                import time as _t
+                step = 0
+                while step < 60 and not stop_event["stop"]:  # 60 × 5s ≈ 5 分钟封顶
+                    _t.sleep(5)
+                    step += 1
+                    cur = state.read().get("progress", 0) or 0
+                    if cur >= 85:
+                        break
+                    state.update(progress=min(85, cur + 1))
+
+            pump = threading.Thread(target=_progress_pump, daemon=True)
+            pump.start()
             out_path = Path(
                 str(
                     YOLO(str(src_path)).export(
