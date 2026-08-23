@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 # 模型仓库可识别的单文件扩展名（含转换产物）
-FILE_EXTS = {".pt", ".onnx", ".engine", ".tflite", ".torchscript", ".xml", ".rknn"}
+FILE_EXTS = {".pt", ".onnx", ".engine", ".torchscript", ".xml", ".rknn"}
 # 目录型转换产物（ultralytics 导出为目录：openvino / ncnn / tfjs / saved_model / paddle）
 DIR_MARKER = "_model"
 

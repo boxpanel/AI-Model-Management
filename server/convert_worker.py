@@ -23,7 +23,6 @@ from typing import Any
 FORMAT_INFO = {
     "onnx": {"ext": ".onnx", "dir": False},
     "engine": {"ext": ".engine", "dir": False},
-    "tflite": {"ext": ".tflite", "dir": False},
     "torchscript": {"ext": ".torchscript", "dir": False},
     "openvino": {"ext": "_openvino_model", "dir": True},
     "ncnn": {"ext": "_ncnn_model", "dir": True},

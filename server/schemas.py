@@ -97,7 +97,7 @@ class SettingsUpdateRequest(BaseModel):
 
 class ConvertStartRequest(BaseModel):
     path: str = ""  # 源权重文件（相对项目根目录）
-    fmt: str = "onnx"  # onnx / engine / tflite / torchscript / openvino / ncnn / rknn
+    fmt: str = "onnx"  # onnx / engine / torchscript / openvino / ncnn / rknn
     imgsz: int = 640
     device: str = "cpu"
     rknn_platform: str = "rk3588"  # RKNN 目标平台，如 rk3588 / rk3576 / rk3568 / rk3399pro

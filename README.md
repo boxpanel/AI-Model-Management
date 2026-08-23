@@ -16,7 +16,7 @@ YOLO 训练管理平台（AI Model Management）：基于 Web 的可视化 YOLO 
 - **模型仓库**
   - 权重上传（.pt / .onnx）、下载、删除
   - 训练产出（best.pt / last.pt）自动入库，显示最后训练时间
-  - **模型格式转换**：ONNX、TensorRT、TFLite、TorchScript、OpenVINO、NCNN、**RKNN（瑞芯微 NPU）**，后台子进程执行，可取消
+  - **模型格式转换**：ONNX、TensorRT、TorchScript、OpenVINO、NCNN、**RKNN（瑞芯微 NPU）**，后台子进程执行，可取消
 - **任务与草稿**
   - 训练任务历史持久化（SQLite），支持详情查看与删除
   - 草稿保存 / 一键恢复
@@ -98,7 +98,6 @@ bash install.sh && ./start.sh          # 安装并启动（生产模式）
 |---|---|---|
 | ONNX | 跨框架通用 | `.onnx` |
 | TensorRT | NVIDIA GPU 加速（需 GPU） | `.engine` |
-| TFLite | 移动端 / 边缘设备 | `.tflite` |
 | TorchScript | PyTorch 原生 | `.torchscript` |
 | OpenVINO | Intel CPU 加速 | 目录 |
 | NCNN | 移动端推理 | 目录 |
