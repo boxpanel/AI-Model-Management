@@ -35,11 +35,16 @@ def _utc_now() -> str:
 
 
 class WorkerState:
-    """state 文件读写（临时文件 + rename 原子写，避免读到半截内容）。"""
+    """state 文件读写（临时文件 + rename 原子写，避免读到半截内容）。
+
+    同进程内多线程（进度推进线程与主线程）并发 update 存在读-改-写竞态，
+    可能覆盖彼此刚写入的字段，故用线程锁串行化。
+    """
 
     def __init__(self, path: Path) -> None:
         self.path = path
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._lock = threading.Lock()
 
     def read(self) -> dict[str, Any]:
         if not self.path.exists():
@@ -50,12 +55,13 @@ class WorkerState:
             return {}
 
     def update(self, **fields: Any) -> None:
-        data = self.read()
-        data.update(fields)
-        data["updated_at"] = _utc_now()
-        tmp = self.path.with_suffix(".tmp")
-        tmp.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
-        tmp.replace(self.path)
+        with self._lock:
+            data = self.read()
+            data.update(fields)
+            data["updated_at"] = _utc_now()
+            tmp = self.path.with_suffix(".tmp")
+            tmp.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+            tmp.replace(self.path)
 
 
 def main() -> int:

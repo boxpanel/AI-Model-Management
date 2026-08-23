@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 import threading
@@ -124,7 +125,31 @@ class ConvertManager:
                 del logs[:-200]
                 data["logs"] = logs
                 state_path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
-        proc.wait()
+        rc = proc.wait()
+        # 兜底：worker 进程已退出但状态仍停留在 running（worker 写 completed 期间
+        # 被本线程或其他写方并发覆盖，或进程异常退出），按退出码修正终态，
+        # 避免界面永久卡在转换中（如 95%）。
+        try:
+            data = json.loads(state_path.read_text(encoding="utf-8"))
+        except Exception:
+            data = {}
+        if data.get("state") in (None, "running", "queued"):
+            if rc == 0:
+                data["state"] = "completed"
+                data["progress"] = 100.0
+                data["message"] = "转换完成"
+                if not data.get("output"):
+                    # 从日志中提取产物路径（ultralytics 打印的 Results saved to ...）
+                    for log in reversed(data.get("logs", [])):
+                        msg = re.sub(r"\x1b\[[0-9;]*m", "", log.get("message", ""))
+                        m = re.search(r"Results saved to\s+(\S+)", msg)
+                        if m:
+                            data["output"] = m.group(1)
+                            break
+            else:
+                data["state"] = "error"
+                data["message"] = f"转换进程异常退出（code={rc}）"
+            state_path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
         with self._lock:
             self._procs.pop(job_id, None)
 
