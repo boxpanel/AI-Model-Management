@@ -227,6 +227,13 @@
       <div class="actions"><button class="btn" id="user-pwd-cancel" type="button">取消</button><button class="btn primary" id="user-pwd-submit" type="button">保存</button></div>
     </div>
   </div>
+  <div class="modal-mask" id="confirm-mask" style="display:none">
+    <div class="modal" style="width:min(420px,92vw)">
+      <div class="modal-head"><h2>操作确认</h2></div>
+      <p id="confirm-text" style="color:#44516a;font-size:14px;line-height:1.7;margin:0 0 22px"></p>
+      <div class="actions" style="margin-top:0"><button class="btn" id="confirm-cancel" type="button">取消</button><button class="btn primary" id="confirm-ok" type="button">确定</button></div>
+    </div>
+  </div>
   <div class="login-mask" id="login-mask" style="display:none">
     <div class="login-box">
       <h1>VisionLab</h1>
@@ -679,13 +686,14 @@
           div.innerHTML = '<h3>' + item.name + '</h3><p>' + (item.root_path || item.path || '未设置路径') + '</p><div class="meta"><span>' + (item.split || '—') + '</span><span class="badge ' + (item.builtin ? 'builtin' : 'custom') + '">' + (item.builtin ? '内置' : '自定义') + '</span></div><div class="item-actions">' + actionBtn + '</div>';
           div.addEventListener('dblclick', () => openDatasetModal('edit', item));
           const actBtn = div.querySelector('[data-ds-del]');
-          if (actBtn) actBtn.addEventListener('click', async event => {
+          if (actBtn) actBtn.addEventListener('click', event => {
             event.stopPropagation();
-            if (!confirm('确定删除数据集「' + item.name + '」？')) return;
-            try {
-              const result = await api('/api/datasets?name=' + encodeURIComponent(item.name), { method: 'DELETE' });
-              if (result.ok) { showToast('数据集已删除：' + item.name); loadDatasets(); }
-            } catch (_) { showToast('服务未连接，无法删除'); }
+            showConfirm('确定删除数据集「' + item.name + '」？', async () => {
+              try {
+                const result = await api('/api/datasets?name=' + encodeURIComponent(item.name), { method: 'DELETE' });
+                if (result.ok) { showToast('数据集已删除：' + item.name); loadDatasets(); }
+              } catch (_) { showToast('服务未连接，无法删除'); }
+            });
           });
           box.appendChild(div);
         });
@@ -740,12 +748,13 @@
           const dlBtn = div.querySelector('[data-model-dl]');
           if (dlBtn) dlBtn.addEventListener('click', () => downloadFile(dlBtn.dataset.modelDl, dlBtn.dataset.modelName));
           const delBtn = div.querySelector('[data-model-del]');
-          if (delBtn) delBtn.addEventListener('click', async () => {
-            if (!confirm('确定删除权重文件「' + item.name + '」？')) return;
-            try {
-              const result = await api('/api/models?path=' + encodeURIComponent(item.path), { method: 'DELETE' });
-              if (result.ok) { showToast('权重文件已删除'); loadModels(); loadWeightsSelect(); }
-            } catch (_) { showToast('服务未连接，无法删除'); }
+          if (delBtn) delBtn.addEventListener('click', () => {
+            showConfirm('确定删除权重文件「' + item.name + '」？', async () => {
+              try {
+                const result = await api('/api/models?path=' + encodeURIComponent(item.path), { method: 'DELETE' });
+                if (result.ok) { showToast('权重文件已删除'); loadModels(); loadWeightsSelect(); }
+              } catch (_) { showToast('服务未连接，无法删除'); }
+            });
           });
         });
       } catch (_) {
@@ -764,7 +773,7 @@
             openConvertModal(item.path, item.name);
           });
           div.querySelector('[data-model-del-offline]').addEventListener('click', () => {
-            if (confirm('确定删除示例权重文件「' + item.name + '」？')) showToast('离线模式，示例数据删除后刷新页面恢复');
+            showConfirm('确定删除示例权重文件「' + item.name + '」？', () => showToast('离线模式，示例数据删除后刷新页面恢复'));
           });
         });
       }
@@ -782,13 +791,14 @@
           div.innerHTML = '<h3>' + item.task_name + '</h3><p>' + (item.model_version || '') + ' · ' + (item.dataset || '') + '</p><div class="meta"><span>epoch ' + (item.epoch || 0) + '/' + (item.total_epochs || 0) + '</span><span class="badge ' + (item.state === 'completed' ? 'training' : 'custom') + '">' + (item.state || '—') + '</span></div><div class="time-row"><span>' + formatTime(item.updated_at) + '</span><button class="btn-link danger" data-task-del="' + item.id + '">删除</button></div>';
           div.addEventListener('click', event => { if (!event.target.closest('[data-task-del]')) showTaskDetail(item); });
           box.appendChild(div);
-          div.querySelector('[data-task-del]').addEventListener('click', async event => {
+          div.querySelector('[data-task-del]').addEventListener('click', event => {
             event.stopPropagation();
-            if (!confirm('确定删除任务记录「' + item.task_name + '」？')) return;
-            try {
-              const result = await api('/api/tasks/' + item.id, { method: 'DELETE' });
-              if (result.ok) { showToast('任务记录已删除'); loadTasks(); }
-            } catch (_) { showToast('服务未连接，无法删除'); }
+            showConfirm('确定删除任务记录「' + item.task_name + '」？', async () => {
+              try {
+                const result = await api('/api/tasks/' + item.id, { method: 'DELETE' });
+                if (result.ok) { showToast('任务记录已删除'); loadTasks(); }
+              } catch (_) { showToast('服务未连接，无法删除'); }
+            });
           });
         });
       } catch (_) {
@@ -1167,14 +1177,15 @@
           tr.addEventListener('dblclick', () => openUserPwdModal(u.username));
           tbody.appendChild(tr);
           const delBtn = tr.querySelector('[data-user-del]');
-          if (delBtn) delBtn.addEventListener('click', async e => {
+          if (delBtn) delBtn.addEventListener('click', e => {
             e.stopPropagation();
-            if (!confirm('确定删除用户「' + u.username + '」？')) return;
-            try {
-              const r = await api('/api/users?username=' + encodeURIComponent(u.username), { method: 'DELETE' });
-              showToast(r.message || '已删除');
-              loadUsers();
-            } catch (err) { showToast('删除失败：' + (parseErr(err) || '')); }
+            showConfirm('确定删除用户「' + u.username + '」？', async () => {
+              try {
+                const r = await api('/api/users?username=' + encodeURIComponent(u.username), { method: 'DELETE' });
+                showToast(r.message || '已删除');
+                loadUsers();
+              } catch (err) { showToast('删除失败：' + (parseErr(err) || '')); }
+            });
           });
         });
       } catch (err) {
@@ -1517,18 +1528,19 @@
       draw(t, '#315eea'); draw(v, '#e69a37');
     }
     async function stopJob(taskName) {
-      if (!confirm('确定停止训练任务「' + taskName + '」？')) return;
-      try {
-        const result = await api('/api/training/stop?task=' + encodeURIComponent(taskName), { method: 'POST' });
-        if (result.ok) {
-          addLog('已请求停止训练：' + taskName, 'log-ok', taskName);
-          showToast('已请求停止训练：' + taskName);
-          if (result.status && Array.isArray(result.status.tasks)) renderTrainingDashboard(result.status.tasks);
-          refreshGpuOccupancy();
-        } else {
-          showToast(result.error || '停止训练失败');
-        }
-      } catch (_) { showToast('停止训练失败'); }
+      showConfirm('确定停止训练任务「' + taskName + '」？', async () => {
+        try {
+          const result = await api('/api/training/stop?task=' + encodeURIComponent(taskName), { method: 'POST' });
+          if (result.ok) {
+            addLog('已请求停止训练：' + taskName, 'log-ok', taskName);
+            showToast('已请求停止训练：' + taskName);
+            if (result.status && Array.isArray(result.status.tasks)) renderTrainingDashboard(result.status.tasks);
+            refreshGpuOccupancy();
+          } else {
+            showToast(result.error || '停止训练失败');
+          }
+        } catch (_) { showToast('停止训练失败'); }
+      });
     }
     // 返回训练管理页面时初始化表单参数（模型 / 数据集 / 设备选择保持不变）
     function resetSetupForm() {
@@ -1566,6 +1578,18 @@
       toast.textContent = message;
       toast.classList.add('show');
       setTimeout(() => toast.classList.remove('show'), 2600);
+    }
+    // 居中确认对话框（替代浏览器原生 confirm）
+    function showConfirm(message, onOk) {
+      const mask = document.getElementById('confirm-mask');
+      if (!mask) return;
+      document.getElementById('confirm-text').textContent = message;
+      mask.style.display = 'flex';
+      const ok = document.getElementById('confirm-ok');
+      const cancel = document.getElementById('confirm-cancel');
+      const close = () => { mask.style.display = 'none'; ok.onclick = null; cancel.onclick = null; };
+      cancel.onclick = close;
+      ok.onclick = () => { close(); if (typeof onOk === 'function') onOk(); };
     }
     let trainingEnv = document.getElementById('model').value, environmentReady = false;
     document.getElementById('model').addEventListener('change', event => {
