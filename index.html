@@ -1620,8 +1620,14 @@
     }
     function drawLossChart(canvas, trainPts, valPts) {
       if (!canvas) return;
+      // 按容器实际显示宽度重设画布分辨率（含高分屏适配），避免固定 320 画布被 CSS 拉伸导致曲线变形
+      const dpr = window.devicePixelRatio || 1;
+      const W = canvas.clientWidth || 320;
+      const H = 150;  // 与 .job-detail canvas 的 CSS 高度一致
+      canvas.width = Math.round(W * dpr);
+      canvas.height = Math.round(H * dpr);
       const ctx = canvas.getContext('2d');
-      const W = canvas.width, H = canvas.height;
+      ctx.scale(dpr, dpr);
       ctx.clearRect(0, 0, W, H);
       const toXY = p => Array.isArray(p) ? [Number(p[0]), Number(p[1])] : String(p).split(',').map(Number);
       const t = (trainPts || []).map(toXY).filter(p => p.length === 2 && isFinite(p[0]) && isFinite(p[1]));
