@@ -1312,7 +1312,10 @@
           ptItems.forEach(item => {
             const opt = document.createElement('option');
             opt.value = item.path;
-            opt.textContent = item.name + (item.source === 'training' ? '（训练产出）' : '');
+            // 显示具体尺寸（YOLO11n 等）与训练方式（从0训练 / 预训练），便于区分权重来源
+            const modeText = item.training_mode === 'scratch' ? '从0训练' : item.training_mode === 'pretrained' ? '预训练' : '';
+            const detail = [item.model_version || '', modeText].filter(Boolean).join(' · ');
+            opt.textContent = item.name + (detail ? '（' + detail + '）' : '') + (item.source === 'training' ? '（训练产出）' : '');
             repoGroup.appendChild(opt);
           });
         } else {

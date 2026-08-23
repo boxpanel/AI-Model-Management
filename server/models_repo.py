@@ -22,6 +22,16 @@ def _guess_model_version(name: str) -> str:
     return prefix + size + (u or "")
 
 
+def _mode_from_weights(wp: str) -> str:
+    """从训练配置的权重路径判断训练方式：.yaml = 从0训练（scratch），.pt = 预训练/续训（pretrained）。"""
+    low = (wp or "").strip().lower()
+    if low.endswith(".yaml"):
+        return "scratch"
+    if low.endswith(".pt"):
+        return "pretrained"
+    return ""
+
+
 def _model_version_for(path: Path, source: str, task_versions: dict[str, str]) -> str:
     """解析权重条目的模型版本：文件名 → 同目录源 .pt（转换产物继承）→ 训练任务记录 → 输出目录中间层大类。"""
     ver = _guess_model_version(path.name)
@@ -82,6 +92,8 @@ def list_models(base_dir: Path, runs_dirs: list[Path] | None = None, db=None) ->
 
     # 任务名 → 模型版本 映射（训练产出 best.pt 从任务记录查询实际使用的模型版本）
     task_versions: dict[str, str] = {}
+    # 任务名 → 训练方式（scratch 从0 / pretrained 预训练）
+    task_modes: dict[str, str] = {}
     if db is not None:
         try:
             for task in db.list_tasks(500):
@@ -95,15 +107,18 @@ def list_models(base_dir: Path, runs_dirs: list[Path] | None = None, db=None) ->
                     cfg_data = json.loads(cfg) if isinstance(cfg, str) else (cfg or {})
                 except Exception:
                     cfg_data = {}
+                wp = (cfg_data.get("weights_path") or "").strip()
                 ver = cfg_data.get("actual_model_version") or ""
                 if not ver:
-                    wp = (cfg_data.get("weights_path") or "").strip()
                     ver = _guess_model_version(Path(wp).name) if wp else ""
                 if not ver and task.get("model_version"):
                     ver = task["model_version"]  # 回退到模型大类
                 # 仅在解析出版本时写入，避免空值挡住下方 config.json 文件兜底
                 if ver:
                     task_versions[tn] = ver
+                mode = _mode_from_weights(wp)
+                if mode:
+                    task_modes[tn] = mode
         except Exception:
             pass
     # 兜底：数据库不可用/记录缺失时，直接从 runs/tasks/<任务>/config.json 读权重名（不覆盖 db 结果）
@@ -114,14 +129,17 @@ def list_models(base_dir: Path, runs_dirs: list[Path] | None = None, db=None) ->
             except Exception:
                 continue
             tn = cfg.get("task_name") or cfg_path.parent.name
+            wp = (cfg.get("weights_path") or "").strip()
             ver = cfg.get("actual_model_version") or ""
             if not ver:
-                wp = (cfg.get("weights_path") or "").strip()
                 ver = _guess_model_version(Path(wp).name) if wp else ""
             if not ver and cfg.get("model_version"):
                 ver = cfg["model_version"]
             if ver:
                 task_versions.setdefault(tn, ver)
+            mode = _mode_from_weights(wp)
+            if mode:
+                task_modes.setdefault(tn, mode)
     except Exception:
         pass
 
@@ -144,6 +162,7 @@ def list_models(base_dir: Path, runs_dirs: list[Path] | None = None, db=None) ->
                 task_name = path.parent.parent.name
                 item = _entry_info(base_dir, path, "training", f"{task_name}/{path.name}")
                 item["model_version"] = _model_version_for(path, "training", task_versions)
+                item["training_mode"] = task_modes.get(task_name, "")
                 items.append(item)
             elif path.is_file() and path.suffix.lower() in FILE_EXTS:
                 rel = str(path.relative_to(base_dir)).replace("\\", "/")
@@ -152,6 +171,7 @@ def list_models(base_dir: Path, runs_dirs: list[Path] | None = None, db=None) ->
                 task_name = path.parent.parent.name
                 item = _entry_info(base_dir, path, "training", f"{task_name}/{path.name}")
                 item["model_version"] = _model_version_for(path, "training", task_versions)
+                item["training_mode"] = task_modes.get(task_name, "")
                 items.append(item)
 
     items.sort(key=lambda item: item["updated_at"], reverse=True)
