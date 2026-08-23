@@ -45,6 +45,7 @@
     .detect-note { margin-top:6px; min-height:16px; color:var(--muted); font-size:11px; }.training-screen { display:none; }.training-head { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:23px; }.training-head h1 { margin-bottom:7px; }.running { display:inline-flex; align-items:center; gap:8px; padding:8px 11px; color:#287b63; background:#effbf7; border-radius:7px; font-size:13px; }.pulse { width:8px; height:8px; border-radius:50%; background:#27a87a; animation:pulse 1.4s infinite; } @keyframes pulse { 50% { opacity:.35; transform:scale(.7); } }
     .metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:15px; margin-bottom:21px; }.metric { padding:18px; }.metric span { display:block; color:var(--muted); font-size:12px; margin-bottom:8px; }.metric b { font-size:22px; font-weight:600; }.metric em { font-style:normal; font-size:12px; color:var(--success); margin-left:5px; }
     .job-list { display:grid; grid-template-columns:repeat(auto-fill,minmax(330px,1fr)); gap:15px; }.job-card { border:1px solid var(--line); border-radius:12px; padding:17px; background:#fff; }.job-card .job-head { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }.job-card .job-head h3 { margin:0 0 6px; font-size:15px; }.job-card .job-head p { margin:0; color:var(--muted); font-size:12px; }.job-status { display:inline-flex; align-items:center; gap:7px; padding:5px 10px; border-radius:7px; font-size:12px; white-space:nowrap; }.job-status.running { color:#287b63; background:#effbf7; }.job-status.completed { color:#1a9a71; background:#effbf7; }.job-status.stopped, .job-status.error, .job-status.interrupted { color:#bd4c55; background:#fff6f6; }.job-status.queued { color:#9a6700; background:#fff3e0; }.job-metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:14px 0 11px; }.job-metrics div { background:#f7f9fd; border-radius:8px; padding:9px 10px; }.job-metrics span { display:block; color:var(--muted); font-size:11px; margin-bottom:4px; }.job-metrics b { font-size:14px; font-weight:600; color:#43516a; }.job-bar { height:7px; border-radius:6px; background:#e9eef8; overflow:hidden; }.job-bar div { height:100%; border-radius:inherit; background:linear-gradient(90deg,#315eea,#6e8ffc); transition:width .5s; }.job-detail { display:none; margin-top:13px; border-top:1px dashed var(--line); padding-top:12px; }.job-detail .job-log { max-height:150px; overflow:auto; background:#121d33; color:#c5d2ee; font-family:Consolas,monospace; font-size:11px; line-height:1.7; border-radius:8px; padding:10px; margin-top:10px; }.job-detail canvas { display:block; width:100%; height:150px; }
+    .running-banner { display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:20px; padding:13px 16px; border:1px solid #bfe5d5; background:#effbf7; color:#287b63; border-radius:10px; font-size:13px; }.running-banner .btn { flex-shrink:0; }
     .hardware-card { margin-bottom:21px; }.hardware-title { display:flex; align-items:center; justify-content:space-between; margin-bottom:17px; gap:14px; }.hardware-title .text-small { color:var(--muted); }.hardware-actions { display:flex; align-items:center; justify-content:flex-end; gap:9px; flex-wrap:wrap; }.gauges { display:grid; grid-template-columns:repeat(3,1fr); gap:22px; }.gauge { display:grid; grid-template-columns:88px 1fr; align-items:center; gap:13px; min-width:0; }.dial { --value:0; width:84px; height:84px; display:grid; place-items:center; border-radius:50%; background:conic-gradient(#315eea calc(var(--value) * 1%), #e9eef8 0); position:relative; }.dial::after { content:""; position:absolute; inset:8px; border-radius:50%; background:#fff; }.dial b { position:relative; z-index:1; font-size:17px; }.gauge h3 { margin:0 0 5px; font-size:14px; }.gauge p { margin:0; color:var(--muted); font-size:12px; line-height:1.55; }.gauge .gauge-value { display:block; margin-top:4px; color:#43516a; font-size:12px; }
     .dashboard-status-bar { display:flex; justify-content:flex-end; align-items:flex-end; gap:9px; flex-wrap:wrap; margin-bottom:8px; }.environment-controls { display:grid; gap:6px; justify-items:end; }.dashboard-model-select { display:flex; align-items:center; gap:7px; color:#526078; font-size:13px; }.dashboard-model-select select { width:auto; min-width:105px; height:36px; }.hardware-card { margin-bottom:21px; }.hardware-title { display:flex; align-items:center; justify-content:space-between; margin-bottom:17px; gap:14px; }.hardware-title .text-small { color:var(--muted); }.gauges { display:grid; grid-template-columns:repeat(3,1fr); gap:22px; }.gauge { display:grid; grid-template-columns:88px 1fr; align-items:center; gap:13px; min-width:0; }.dial { --value:0; width:84px; height:84px; display:grid; place-items:center; border-radius:50%; background:conic-gradient(#315eea calc(var(--value) * 1%), #e9eef8 0); position:relative; }.dial::after { content:""; position:absolute; inset:8px; border-radius:50%; background:#fff; }.dial b { position:relative; z-index:1; font-size:17px; }.gauge h3 { margin:0 0 5px; font-size:14px; }.gauge p { margin:0; color:var(--muted); font-size:12px; line-height:1.55; }.gauge .gauge-value { display:block; margin-top:4px; color:#43516a; font-size:12px; }
     .progress-card { margin-bottom:21px; }.progress-title { display:flex; justify-content:space-between; font-size:14px; margin-bottom:14px; }.bar { height:9px; overflow:hidden; border-radius:8px; background:#e9eef8; }.bar div { width:0%; height:100%; border-radius:inherit; background:linear-gradient(90deg,#315eea,#6e8ffc); transition:width .5s; }.progress-foot { display:flex; justify-content:space-between; color:var(--muted); font-size:12px; margin-top:10px; }
@@ -84,6 +85,7 @@
       <div class="dashboard-status-bar"><div class="status" id="hardware-status"><i></i>正在检测显卡</div><div class="environment-controls"><label class="dashboard-model-select" for="model">模型版本 <select id="model"><option selected>YOLO11n</option><option>YOLO11s</option><option>YOLO11m</option><option>YOLO11l</option><option>YOLO11x</option><option>YOLOv8n</option><option>YOLOv8s</option><option>YOLOv8m</option><option>YOLOv8l</option><option>YOLOv8x</option><option>YOLOv5nu</option><option>YOLOv5su</option><option>YOLOv5mu</option><option>YOLOv5lu</option><option>YOLOv5xu</option></select></label><div class="status" id="conda-status"><i></i>环境已激活：YOLOv11</div></div></div>
       <section class="card hardware-card" id="hardware-dashboard"><div class="hardware-title"><div><h2>硬件监控</h2><span class="text-small" id="hardware-source">等待本地训练服务上报实时使用率</span></div></div><div class="gauges"><div class="gauge"><div class="dial" id="cpu-dial"><b id="cpu-percent">--</b></div><div><h3>系统 CPU</h3><p id="cpu-model">正在读取 CPU 配置</p><span class="gauge-value" id="cpu-usage">使用率待上报</span></div></div><div class="gauge"><div class="dial" id="ram-dial"><b id="ram-percent">--</b></div><div><h3>系统内存</h3><p id="ram-model">正在读取内存配置</p><span class="gauge-value" id="ram-usage">使用率待上报</span></div></div><div class="gauge"><div class="dial" id="disk-dial"><b id="disk-percent">--</b></div><div><h3>硬盘</h3><p id="disk-model">正在读取磁盘配置</p><span class="gauge-value" id="disk-usage">使用率待上报</span></div></div></div><div class="gauges" id="gpu-gauges"></div></section>
       <div id="setup-screen">
+      <div id="running-banner" class="running-banner" style="display:none"><span id="running-banner-text"></span><button class="btn" id="goto-dashboard-btn" type="button">查看任务看板</button></div>
       <header><div><h1>新建训练任务</h1><p class="subtitle">配置 YOLO 训练参数，创建一个新的模型训练任务。</p></div></header>
       <section class="card weights-card"><h2>选择模型文件（权重）</h2><p class="hint">从模型仓库中选择用于训练或继续训练的 YOLO 权重文件。</p><select id="weights-select"><option value="">正在加载权重列表…</option></select></section>
       <div class="grid">
@@ -353,6 +355,32 @@
       document.getElementById('training-screen').style.display = 'none';
       document.getElementById('setup-screen').style.display = 'block';
     }
+    // 刷新参数设置界面顶部的「运行中任务」横幅
+    async function refreshTrainingBanner() {
+      const banner = document.getElementById('running-banner');
+      if (!banner) return;
+      try {
+        const status = await api('/api/training/status');
+        const running = (status && Array.isArray(status.tasks) ? status.tasks : []).filter(t => t.state === 'running');
+        if (running.length) {
+          banner.style.display = 'flex';
+          document.getElementById('running-banner-text').textContent = running.length + ' 个训练任务正在运行：' + running.map(t => t.task_name).join('、');
+        } else {
+          banner.style.display = 'none';
+        }
+      } catch (_) {}
+    }
+    // 进入训练管理页：刷新横幅；有运行中任务时直接显示任务看板
+    async function enterTrainingView() {
+      refreshTrainingBanner();
+      try {
+        const status = await api('/api/training/status');
+        if (status && status.state === 'running') {
+          renderTrainingDashboard((status.tasks) || []);
+          switchToTraining();
+        }
+      } catch (_) {}
+    }
     async function checkTrainingRecovery() {
       try {
         const status = await api('/api/training/status');
@@ -597,6 +625,7 @@
       refreshEnvironment(document.getElementById('model').value);
       loadSettings();
       loadDatasetConfigOptions();
+      refreshTrainingBanner();
       checkTrainingRecovery();
     }
     document.getElementById('login-btn').addEventListener('click', doLogin);
@@ -630,7 +659,8 @@
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
         const target = document.querySelector('.view[data-view="' + view + '"]');
         if (target) target.classList.add('active');
-        if (view === 'datasets') loadDatasets();
+        if (view === 'train') enterTrainingView();
+        else if (view === 'datasets') loadDatasets();
         else if (view === 'models') loadModels();
         else if (view === 'tasks') { loadTasks(); loadDrafts(); }
         else if (view === 'environment') loadEnvironment();
@@ -1486,6 +1516,7 @@
       }
       // 终态且无运行任务：自动返回初始化界面
       if (state === 'completed' || state === 'stopped' || state === 'error' || state === 'interrupted') {
+        refreshTrainingBanner();
         setTimeout(() => {
           const anyRun = document.querySelectorAll('#job-list .job-status.running').length > 0;
           if (!anyRun && document.getElementById('training-screen').style.display !== 'none') {
@@ -1496,6 +1527,7 @@
         }, 600);
       } else if (state === 'running') {
         refreshGpuOccupancy();
+        refreshTrainingBanner();
       }
     }
     function drawLossChart(canvas, trainPts, valPts) {
@@ -1600,6 +1632,13 @@
       }
     });
     document.getElementById('new-training-btn').addEventListener('click', () => { resetSetupForm(); switchToSetup(); });
+    document.getElementById('goto-dashboard-btn').addEventListener('click', async () => {
+      switchToTraining();
+      try {
+        const status = await api('/api/training/status');
+        renderTrainingDashboard((status && status.tasks) || []);
+      } catch (_) {}
+    });
   </script>
 </body>
 </html>
