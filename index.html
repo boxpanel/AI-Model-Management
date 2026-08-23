@@ -1030,7 +1030,7 @@
         if (res.hint) showToast(res.hint);
         document.getElementById('dir-up').style.display = res.parent ? '' : 'none';
         list.innerHTML = '';
-        if (!res.dirs.length) { list.innerHTML = '<div class="dir-empty">（无子目录）</div>'; return; }
+        if (!res.dirs.length) { list.innerHTML = '<div class="dir-empty">该目录为空，点击下方「选择当前目录」确认</div>'; return; }
         res.dirs.forEach(name => {
           const item = document.createElement('div');
           item.className = 'dir-item';

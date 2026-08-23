@@ -425,19 +425,17 @@ async def fs_dirs(path: str = "/") -> dict[str, Any]:
             return {"ok": False, "error": "路径不存在"}
         if not p.is_dir():
             p = p.parent
-        # 若目录为空（无子目录），自动向上进入有子目录的最近目录，保证打开即可选择
-        while True:
-            try:
-                children = sorted(
-                    (d.name for d in p.iterdir() if d.is_dir() and not d.name.startswith(".")),
-                    key=str.lower,
-                )
-            except PermissionError:
-                return {"ok": False, "error": "无权限访问该目录"}
-            if children or p == p.parent:
-                break
-            p = p.parent
-            hint = (hint + "；" if hint else "") + f"目录为空，已进入上级目录 {p}"
+        # 目录为空时不自动向上跳转：保留在目标目录，用户可直接「选择当前目录」确认。
+        # （新建数据集时数据根目录可能暂时为空，自动跳转会让人无法选中目标目录）
+        try:
+            children = sorted(
+                (d.name for d in p.iterdir() if d.is_dir() and not d.name.startswith(".")),
+                key=str.lower,
+            )
+        except PermissionError:
+            return {"ok": False, "error": "无权限访问该目录"}
+        if not children and p != p.parent:
+            hint = (hint + "；" if hint else "") + "该目录为空，可直接点击「选择当前目录」确认"
         parent = str(p.parent) if p.parent != p else ""
         return {
             "ok": True,
