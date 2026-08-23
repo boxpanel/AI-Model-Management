@@ -13,6 +13,7 @@ import json
 import os
 import signal
 import sys
+import threading
 import traceback
 from datetime import datetime, timezone
 from pathlib import Path
@@ -241,7 +242,6 @@ def main() -> int:
                 # 构建期间用后台线程平滑推进进度（45 → 80），让用户直观看到仍在进行。
                 # 注意：pump 与主线程并发写 state 文件存在竞态（可能覆盖 completed），
                 # 故主线程用 done 事件通知 pump 立即退出，确保 completed 为最后一次写入。
-                import threading
                 done = threading.Event()
 
                 def _progress_pump() -> None:
@@ -280,7 +280,6 @@ def main() -> int:
             # pump 与主线程并发写 state 存在竞态（可能覆盖 completed），故用 done 事件通知退出。
             hint = "（首次转换 NCNN 需下载 pnnx 工具链，可能需要数分钟，请耐心等待）" if fmt == "ncnn" else ""
             state.update(state="running", message=f"正在导出为 {fmt}…{hint}", progress=15)
-            import threading
             done = threading.Event()
 
             def _progress_pump() -> None:
