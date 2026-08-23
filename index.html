@@ -83,7 +83,7 @@
     </aside>
     <main>
       <div class="view active" data-view="train">
-      <div class="dashboard-status-bar"><div class="status" id="hardware-status"><i></i>正在检测显卡</div><div class="environment-controls"><label class="dashboard-model-select" for="model">模型版本 <select id="model"><option selected>YOLO11n</option><option>YOLO11s</option><option>YOLO11m</option><option>YOLO11l</option><option>YOLO11x</option><option>YOLOv8n</option><option>YOLOv8s</option><option>YOLOv8m</option><option>YOLOv8l</option><option>YOLOv8x</option><option>YOLOv5nu</option><option>YOLOv5su</option><option>YOLOv5mu</option><option>YOLOv5lu</option><option>YOLOv5xu</option></select></label><div class="status" id="conda-status"><i></i>环境已激活：YOLOv11</div></div></div>
+      <div class="dashboard-status-bar"><div class="status" id="hardware-status"><i></i>正在检测显卡</div><div class="environment-controls"><label class="dashboard-model-select" for="model">模型版本 <select id="model"><option selected>YOLO11</option><option>YOLOv8</option><option>YOLOv5</option></select></label><div class="status" id="conda-status"><i></i>环境已激活：YOLOv11</div></div></div>
       <section class="card hardware-card" id="hardware-dashboard"><div class="hardware-title"><div><h2>硬件监控</h2><span class="text-small" id="hardware-source">等待本地训练服务上报实时使用率</span></div></div><div class="gauges"><div class="gauge"><div class="dial" id="cpu-dial"><b id="cpu-percent">--</b></div><div><h3>系统 CPU</h3><p id="cpu-model">正在读取 CPU 配置</p><span class="gauge-value" id="cpu-usage">使用率待上报</span></div></div><div class="gauge"><div class="dial" id="ram-dial"><b id="ram-percent">--</b></div><div><h3>系统内存</h3><p id="ram-model">正在读取内存配置</p><span class="gauge-value" id="ram-usage">使用率待上报</span></div></div><div class="gauge"><div class="dial" id="disk-dial"><b id="disk-percent">--</b></div><div><h3>硬盘</h3><p id="disk-model">正在读取磁盘配置</p><span class="gauge-value" id="disk-usage">使用率待上报</span></div></div></div><div class="gauges" id="gpu-gauges"></div></section>
       <section class="card" id="training-dashboard">
         <div class="hardware-title"><div><h2>训练任务看板</h2><span class="text-small" id="dashboard-status">暂无运行任务</span></div></div>
@@ -91,7 +91,7 @@
       </section>
       <div id="setup-screen">
       <header><div><h1>新建训练任务</h1><p class="subtitle">配置 YOLO 训练参数，创建一个新的模型训练任务。</p></div></header>
-      <section class="card weights-card"><h2>选择模型文件（权重）</h2><p class="hint">从模型仓库中选择用于训练或继续训练的 YOLO 权重文件。</p><select id="weights-select"><option value="">正在加载权重列表…</option></select></section>
+      <section class="card weights-card"><h2>选择模型文件（权重）</h2><p class="hint">三种方式：从 0 开始训练（无预训练）、使用官方预训练权重（自动下载）、使用仓库中的 .pt 权重文件。</p><select id="weights-select"><option value="">正在加载权重列表…</option></select></section>
       <div class="grid">
         <section class="card">
           <h2>基础配置</h2><p class="hint">设置训练任务与数据集参数。</p>
@@ -497,7 +497,7 @@
 
     // 资源预估：根据表单当前实际选择动态刷新（模型 / 数据集 / 设备 / 输出目录）
     function updateEstimate() {
-      const model = document.getElementById('model').value || 'YOLO11n';
+      const model = document.getElementById('model').value || 'YOLO11';
       const dsName = document.getElementById('dataset-config').value || 'custom-data.yaml';
       const profile = datasetProfiles[dsName] || datasetProfiles['custom-data.yaml'];
       const task = document.getElementById('task-name').value || 'yolo-exp-001';
@@ -508,7 +508,7 @@
       if (el('est-model')) el('est-model').textContent = model;
       if (el('est-dataset')) el('est-dataset').textContent = dsText;
       if (el('est-device')) el('est-device').textContent = devText;
-      if (el('est-outdir')) el('est-outdir').textContent = 'runs/train/' + task;
+      if (el('est-outdir')) el('est-outdir').textContent = 'runs/' + model + '/' + task;
     }
 
     function updateDeviceOptions(env) {
@@ -734,7 +734,12 @@
       const box = document.getElementById('model-list'), status = document.getElementById('model-list-status');
       try {
         const items = await api('/api/models');
-        if (!Array.isArray(items) || !items.length) throw new Error('empty');
+        if (!Array.isArray(items)) throw new Error('响应格式错误');
+        if (!items.length) {
+          status.textContent = '暂无权重文件';
+          box.innerHTML = '<div class="empty-state">暂无权重文件，可通过训练产出或「上传权重」添加。</div>';
+          return;
+        }
         status.textContent = '共 ' + items.length + ' 个权重文件';
         box.innerHTML = '';
         items.forEach(item => {
@@ -753,13 +758,23 @@
             showConfirm('确定删除权重文件「' + item.name + '」？', async () => {
               try {
                 const result = await api('/api/models?path=' + encodeURIComponent(item.path), { method: 'DELETE' });
-                if (result.ok) { showToast('权重文件已删除'); loadModels(); loadWeightsSelect(); }
+                if (result.ok) { showToast('权重文件已删除'); backendOnline = true; loadModels(); loadWeightsSelect(); }
               } catch (_) { showToast('服务未连接，无法删除'); }
             });
           });
         });
       } catch (e) {
-        if (!backendOnline) {
+        // 服务可达性实时探测（/api/health 免鉴权），不依赖 refreshEnvironment 的时序结果：
+        // 删除/上传成功后列表刷新若瞬时失败，而 backendOnline 仍为 false，会被误判为离线模式。
+        let reachable = backendOnline;
+        if (!reachable) {
+          try { reachable = (await fetch(`${API_BASE}/api/health`)).ok; } catch (_) { reachable = false; }
+        }
+        if (reachable) {
+          // 服务可达但列表加载失败：显示真实错误，不伪造离线示例数据（重试一次后再失败再提示）
+          status.textContent = '模型列表加载失败';
+          box.innerHTML = '<div class="empty-state">' + (parseErr(e) || '加载失败，请稍后重试') + '</div>';
+        } else {
           // 服务不可达：展示离线示例数据
           status.textContent = '离线模式 · 示例数据';
           box.innerHTML = '';
@@ -779,10 +794,6 @@
               showConfirm('确定删除示例权重文件「' + item.name + '」？', () => showToast('离线模式，示例数据删除后刷新页面恢复'));
             });
           });
-        } else {
-          // 服务可达但加载失败：显示真实错误，不伪造离线示例数据
-          status.textContent = '模型列表加载失败';
-          box.innerHTML = '<div class="empty-state">' + (parseErr(e) || '加载失败，请稍后重试') + '</div>';
         }
       }
     }
@@ -1243,15 +1254,42 @@
       if (!select) return;
       const modelVersion = document.getElementById('model').value;
       const defaults = {
-        'YOLO11n': 'yolo11n.pt', 'YOLO11s': 'yolo11s.pt', 'YOLO11m': 'yolo11m.pt', 'YOLO11l': 'yolo11l.pt', 'YOLO11x': 'yolo11x.pt',
-        'YOLOv8n': 'yolov8n.pt', 'YOLOv8s': 'yolov8s.pt', 'YOLOv8m': 'yolov8m.pt', 'YOLOv8l': 'yolov8l.pt', 'YOLOv8x': 'yolov8x.pt',
-        'YOLOv5nu': 'yolov5nu.pt', 'YOLOv5su': 'yolov5su.pt', 'YOLOv5mu': 'yolov5mu.pt', 'YOLOv5lu': 'yolov5lu.pt', 'YOLOv5xu': 'yolov5xu.pt'
+        'YOLO11': 'yolo11n.pt',
+        'YOLOv8': 'yolov8n.pt',
+        'YOLOv5': 'yolov5nu.pt'
       };
+      // 各模型大类对应的官方模型名（尺寸 n/s/m/l/x）：.pt 为官方预训练权重（自动下载），.yaml 为从零训练的架构
+      const official = {
+        'YOLO11': ['n', 's', 'm', 'l', 'x'].map(s => 'yolo11' + s),
+        'YOLOv8': ['n', 's', 'm', 'l', 'x'].map(s => 'yolov8' + s),
+        'YOLOv5': ['nu', 'su', 'mu', 'lu', 'xu'].map(s => 'yolov5' + s)
+      };
+      const displayName = base => base.replace(/^yolo(11|v8|v5)(.*)$/, (m, fam, size) => ({ 11: 'YOLO11', v8: 'YOLOv8', v5: 'YOLOv5' }[fam] + size));
+      const names = official[modelVersion] || official['YOLO11'];
       select.innerHTML = '';
-      const def = document.createElement('option');
-      def.value = '';
-      def.textContent = '使用默认权重：' + (defaults[modelVersion] || 'yolo11n.pt');
-      select.appendChild(def);
+      // 情况一：从 0 开始训练（不使用预训练权重，用模型架构 .yaml）
+      const scratchGroup = document.createElement('optgroup');
+      scratchGroup.label = '从 0 开始训练（不使用预训练权重）';
+      names.forEach(base => {
+        const opt = document.createElement('option');
+        opt.value = base + '.yaml';
+        opt.textContent = displayName(base) + '（' + base + '.yaml）';
+        scratchGroup.appendChild(opt);
+      });
+      select.appendChild(scratchGroup);
+      // 情况二：官方已训练好的预训练权重（训练时自动下载）
+      const officialGroup = document.createElement('optgroup');
+      officialGroup.label = '官方预训练权重（自动下载）';
+      names.forEach(base => {
+        const opt = document.createElement('option');
+        opt.value = base + '.pt';
+        opt.textContent = displayName(base) + '（' + base + '.pt）';
+        officialGroup.appendChild(opt);
+      });
+      select.appendChild(officialGroup);
+      // 情况三：仓库中的权重文件（他人 .pt / 历史训练产出）
+      const repoGroup = document.createElement('optgroup');
+      repoGroup.label = '仓库中的权重文件';
       try {
         const items = await api('/api/models');
         if (Array.isArray(items) && items.length) {
@@ -1260,20 +1298,23 @@
             const opt = document.createElement('option');
             opt.value = item.path;
             opt.textContent = item.name + (item.source === 'training' ? '（训练产出）' : '');
-            select.appendChild(opt);
+            repoGroup.appendChild(opt);
           });
-          if (uploadedWeightsPath) select.value = uploadedWeightsPath;
         } else {
-          select.appendChild(new Option('（仓库暂无权重，可前往模型仓库上传）', ''));
+          repoGroup.appendChild(new Option('（仓库暂无权重，可前往模型仓库上传）', ''));
         }
       } catch (_) {
         OFFLINE_MODELS().forEach(item => {
           const opt = document.createElement('option');
           opt.value = '';
-          opt.textContent = item.name;
-          select.appendChild(opt);
+          opt.textContent = item.name + '（示例数据）';
+          repoGroup.appendChild(opt);
         });
       }
+      select.appendChild(repoGroup);
+      // 默认选中官方预训练 n 尺寸（等价原「使用默认权重」）；上传的权重优先选中
+      select.value = defaults[modelVersion] || 'yolo11n.pt';
+      if (uploadedWeightsPath) select.value = uploadedWeightsPath;
     }
     async function uploadWeights(file) {
       const form = new FormData();

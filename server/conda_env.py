@@ -14,11 +14,11 @@ MODEL_ENV_CANDIDATES = {
     "YOLOv5": ["YOLOv5", "yolov5", "ultralytics"],
 }
 
-# 细分后的模型版本（尺寸变体）→ 所属 Conda 环境家族（YOLO11n 等共用 YOLOv11 环境）
+# 模型版本（大类）→ 所属 Conda 环境家族（YOLO11 对应 YOLOv11 环境；尺寸变体由权重文件决定）
 VERSION_TO_FAMILY = {
-    "YOLO11n": "YOLOv11", "YOLO11s": "YOLOv11", "YOLO11m": "YOLOv11", "YOLO11l": "YOLOv11", "YOLO11x": "YOLOv11",
-    "YOLOv8n": "YOLOv8", "YOLOv8s": "YOLOv8", "YOLOv8m": "YOLOv8", "YOLOv8l": "YOLOv8", "YOLOv8x": "YOLOv8",
-    "YOLOv5nu": "YOLOv5", "YOLOv5su": "YOLOv5", "YOLOv5mu": "YOLOv5", "YOLOv5lu": "YOLOv5", "YOLOv5xu": "YOLOv5",
+    "YOLO11": "YOLOv11",
+    "YOLOv8": "YOLOv8",
+    "YOLOv5": "YOLOv5",
 }
 
 
@@ -74,7 +74,7 @@ def resolve_env_for_model(model_version: str, preferred: str = "") -> Optional[s
     envs = list_conda_envs()
     prefix = _current_conda_prefix()
     env_names = {env["name"].lower(): env["name"] for env in envs}
-    # 细分版本（YOLO11n 等）先映射到所属家族环境（YOLOv11）
+    # 模型版本（大类，如 YOLO11）先映射到所属家族环境（YOLOv11）
     family = VERSION_TO_FAMILY.get(model_version, model_version)
     for candidate in MODEL_ENV_CANDIDATES.get(family, [family]):
         cand_lower = candidate.lower()

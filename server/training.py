@@ -290,6 +290,8 @@ class TrainingManager:
             runs_setting, cfg_setting = "", ""
         project_dir = self._resolve_setting_dir(runs_setting) or self.runs_dir
         cfg_dir = self._resolve_setting_dir(cfg_setting) or (self.base_dir / "datasets")
+        # 3 个大类（YOLO11 / YOLOv8 / YOLOv5）使用独立输出文件夹：runs/<模型大类>/<任务名>
+        project_dir = (project_dir / config.model_version).resolve()
         project_dir.mkdir(parents=True, exist_ok=True)
         payload["project_dir"] = str(project_dir)
         payload["datasets_cfg_dir"] = str(cfg_dir)

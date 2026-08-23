@@ -136,15 +136,19 @@ def main() -> int:
             candidate = base_dir / candidate
         if candidate.exists():
             weights = str(candidate)
+        elif "/" not in weights and "\\" not in weights and weights.lower().endswith((".pt", ".yaml")):
+            # 官方模型名：.pt 为预训练权重（自动下载）、.yaml 为从零训练架构——保留原名交给 ultralytics
+            pass
         else:
+            # 仓库路径不存在（可能已被删除）：回退默认权重
             weights = ""
     if not weights:
         model_weights = {
-            "YOLO11n": "yolo11n.pt", "YOLO11s": "yolo11s.pt", "YOLO11m": "yolo11m.pt", "YOLO11l": "yolo11l.pt", "YOLO11x": "yolo11x.pt",
-            "YOLOv8n": "yolov8n.pt", "YOLOv8s": "yolov8s.pt", "YOLOv8m": "yolov8m.pt", "YOLOv8l": "yolov8l.pt", "YOLOv8x": "yolov8x.pt",
-            "YOLOv5nu": "yolov5nu.pt", "YOLOv5su": "yolov5su.pt", "YOLOv5mu": "yolov5mu.pt", "YOLOv5lu": "yolov5lu.pt", "YOLOv5xu": "yolov5xu.pt",
+            "YOLO11": "yolo11n.pt",
+            "YOLOv8": "yolov8n.pt",
+            "YOLOv5": "yolov5nu.pt",
         }
-        weights = model_weights.get(config.get("model_version", "YOLO11n"), "yolo11n.pt")
+        weights = model_weights.get(config.get("model_version", "YOLO11"), "yolo11n.pt")
 
     data_yaml = (config.get("dataset") or "coco8.yaml").strip()
     # 解析数据集配置文件：优先设置的自定义配置目录，其次项目内 datasets/，再项目根
@@ -329,7 +333,7 @@ def main() -> int:
             emit_log("训练已停止，检查点已保存", "ok")
         else:
             state.update(state="completed", progress=100.0, message="训练完成")
-            emit_log(f"训练完成，输出目录：runs/{task_name}", "ok")
+            emit_log(f"训练完成，输出目录：{config.get('project_dir', 'runs')}/{task_name}", "ok")
     except Exception as exc:
         detail = traceback.format_exc()
         emit_log(f"训练失败：{exc}", "error")
