@@ -250,8 +250,9 @@ def main() -> int:
             return None
 
     def _results_watcher() -> None:
-        """多卡（DDP）模式兜底：ultralytics 子进程不执行自定义回调（已知问题 #6168），
-        改为轮询每轮写入的 results.csv 更新指标与损失曲线，与回调逻辑保持一致。"""
+        """results.csv 轮询兜底（单卡/多卡均启用）：
+        某些 ultralytics 版本/场景下 epoch 回调的 trainer.metrics 取不到 train/box_loss，
+        由 ultralytics 每轮写入的 results.csv 补齐 box_loss / mAP50（回调已正常写入的 epoch 自动跳过）。"""
         import csv
 
         total = int(config.get("epochs", 100))
@@ -268,12 +269,16 @@ def main() -> int:
                     continue
                 row = rows[-1]
                 epoch = int(float(row.get("epoch", 0) or 0))
+                prev = state.read()
+                # 回调已正常写入该 epoch 的损失（box_loss 非 None）时跳过，避免重复追加曲线点
+                if prev.get("epoch") == epoch and prev.get("box_loss") is not None:
+                    seen = len(rows)
+                    continue
                 box_loss = _to_float(row.get("train/box_loss"))
                 val_loss = _to_float(row.get("val/box_loss"))
                 map50 = _to_float(row.get("metrics/mAP50(B)"))
                 elapsed = time.time() - started
                 eta = int(max(0, (elapsed / max(epoch, 1)) * (total - epoch))) if epoch else None
-                prev = state.read()
                 train_points = prev.get("train_points", [])
                 val_points = prev.get("val_points", [])
                 x = 40 + epoch * (560 / max(total, 1))
@@ -301,10 +306,11 @@ def main() -> int:
                 pass
 
     device = _resolve_device(config.get("device", "0"))
-    if "," in str(device):
-        # 多卡 DDP：启用 results.csv 轮询兜底（回调在 DDP 子进程中不会执行）
-        import threading
-        threading.Thread(target=_results_watcher, daemon=True).start()
+    # 单卡/多卡均启用 results.csv 轮询兜底：
+    # 某些 ultralytics 版本/场景下 epoch 回调的 trainer.metrics 取不到 train/box_loss，
+    # 由 results.csv 补齐 box_loss / mAP50（回调已正常写入的 epoch 自动跳过，不重复）
+    import threading
+    threading.Thread(target=_results_watcher, daemon=True).start()
 
     try:
         model = YOLO(weights)
