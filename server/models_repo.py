@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 from datetime import datetime
 from pathlib import Path
@@ -12,13 +13,29 @@ DIR_MARKER = "_model"
 
 
 def _guess_model_version(name: str) -> str:
-    """从权重文件名解析模型版本（如 yolo11n.pt → YOLO11n、yolov5nu.pt → YOLOv5nu），无法识别返回空。"""
-    m = re.match(r"^yolo(11|v8|v5)([nsmlx])(u)?\.pt$", name.lower())
+    """从权重文件名解析模型版本（yolo11n.pt → YOLO11n、yolov5nu.pt → YOLOv5nu、yolo11x.onnx → YOLO11x），无法识别返回空。"""
+    m = re.match(r"^yolo(11|v8|v5)([nsmlx])(u)?\.(pt|onnx|engine|torchscript|xml|rknn)$", name.lower())
     if not m:
         return ""
     fam, size, u = m.groups()
     prefix = {"11": "YOLO11", "v8": "YOLOv8", "v5": "YOLOv5"}[fam]
     return prefix + size + (u or "")
+
+
+def _model_version_for(path: Path, source: str, task_versions: dict[str, str]) -> str:
+    """解析权重条目的模型版本：文件名 → 同目录源 .pt（转换产物继承）→ 训练任务记录。"""
+    ver = _guess_model_version(path.name)
+    if ver:
+        return ver
+    # 转换产物（best.onnx 等，与源 .pt 同名换扩展名）：继承同目录源 .pt 的版本
+    src_pt = path.with_suffix(".pt")
+    if path.is_file() and src_pt != path and src_pt.exists():
+        ver = _guess_model_version(src_pt.name)
+        if ver:
+            return ver
+    if source == "training":
+        return task_versions.get(path.parent.parent.name, "")
+    return ""
 
 
 def _entry_size(path: Path) -> int:
@@ -55,23 +72,37 @@ def list_models(base_dir: Path, runs_dirs: list[Path] | None = None, db=None) ->
     uploads = base_dir / "uploads"
     runs_list = runs_dirs or [base_dir / "runs"]
 
-    # 任务名 → 模型版本 映射（训练产出 best.pt 从数据库查询实际使用的模型版本）
+    # 任务名 → 模型版本 映射（训练产出 best.pt 从任务记录查询实际使用的模型版本）
     task_versions: dict[str, str] = {}
     if db is not None:
         try:
             for task in db.list_tasks(500):
-                if task.get("task_name") and task.get("model_version"):
-                    task_versions[task["task_name"]] = task["model_version"]
+                tn = task.get("task_name")
+                if not tn:
+                    continue
+                # 优先从任务配置的权重文件名解析具体尺寸（yolo11n.pt → YOLO11n）
+                cfg = task.get("config_json") or "{}"
+                try:
+                    cfg_data = json.loads(cfg) if isinstance(cfg, str) else (cfg or {})
+                except Exception:
+                    cfg_data = {}
+                wp = (cfg_data.get("weights_path") or "").strip()
+                ver = _guess_model_version(Path(wp).name) if wp else ""
+                if not ver and task.get("model_version"):
+                    ver = task["model_version"]  # 回退到模型大类
+                task_versions[tn] = ver
         except Exception:
             pass
 
     if uploads.exists():
         for path in sorted(uploads.iterdir()):
             if _is_model_dir(path):
-                items.append(_entry_info(base_dir, path, "upload", path.name))
+                item = _entry_info(base_dir, path, "upload", path.name)
+                item["model_version"] = _model_version_for(path, "upload", task_versions)
+                items.append(item)
             elif path.is_file() and path.suffix.lower() in FILE_EXTS:
                 item = _entry_info(base_dir, path, "upload", path.name)
-                item["model_version"] = _guess_model_version(path.name)
+                item["model_version"] = _model_version_for(path, "upload", task_versions)
                 items.append(item)
 
     for runs in runs_list:
@@ -81,7 +112,7 @@ def list_models(base_dir: Path, runs_dirs: list[Path] | None = None, db=None) ->
             if _is_model_dir(path):
                 task_name = path.parent.parent.name
                 item = _entry_info(base_dir, path, "training", f"{task_name}/{path.name}")
-                item["model_version"] = task_versions.get(task_name, "")
+                item["model_version"] = _model_version_for(path, "training", task_versions)
                 items.append(item)
             elif path.is_file() and path.suffix.lower() in FILE_EXTS:
                 rel = str(path.relative_to(base_dir)).replace("\\", "/")
@@ -89,7 +120,7 @@ def list_models(base_dir: Path, runs_dirs: list[Path] | None = None, db=None) ->
                     continue
                 task_name = path.parent.parent.name
                 item = _entry_info(base_dir, path, "training", f"{task_name}/{path.name}")
-                item["model_version"] = task_versions.get(task_name, "")
+                item["model_version"] = _model_version_for(path, "training", task_versions)
                 items.append(item)
 
     items.sort(key=lambda item: item["updated_at"], reverse=True)
