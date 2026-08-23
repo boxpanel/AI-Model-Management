@@ -1287,21 +1287,21 @@
         officialGroup.appendChild(opt);
       });
       select.appendChild(officialGroup);
-      // 情况三：仓库中的权重文件（他人 .pt / 历史训练产出）
+      // 情况三：仓库中的权重文件（仅 .pt 格式——ONNX/Engine 等转换产物不能用于训练，不显示）
       const repoGroup = document.createElement('optgroup');
-      repoGroup.label = '仓库中的权重文件';
+      repoGroup.label = '仓库中的权重文件（.pt）';
       try {
         const items = await api('/api/models');
-        if (Array.isArray(items) && items.length) {
-          items.forEach(item => {
-            if (!item.path) return;
+        const ptItems = (Array.isArray(items) ? items : []).filter(item => item.path && item.path.toLowerCase().endsWith('.pt'));
+        if (ptItems.length) {
+          ptItems.forEach(item => {
             const opt = document.createElement('option');
             opt.value = item.path;
             opt.textContent = item.name + (item.source === 'training' ? '（训练产出）' : '');
             repoGroup.appendChild(opt);
           });
         } else {
-          repoGroup.appendChild(new Option('（仓库暂无权重，可前往模型仓库上传）', ''));
+          repoGroup.appendChild(new Option('（仓库暂无 .pt 权重文件，可前往模型仓库上传）', ''));
         }
       } catch (_) {
         OFFLINE_MODELS().forEach(item => {
