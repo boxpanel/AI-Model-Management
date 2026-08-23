@@ -854,4 +854,9 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
 
 @app.get("/")
 async def index() -> FileResponse:
-    return FileResponse(BASE_DIR / "index.html")
+    # 禁用 HTML 缓存：页面内联 JS/CSS，浏览器若缓存旧 HTML 会一直看到旧界面，
+    # 部署新代码后普通刷新即拿到最新页面（无需强刷）
+    return FileResponse(
+        BASE_DIR / "index.html",
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+    )
