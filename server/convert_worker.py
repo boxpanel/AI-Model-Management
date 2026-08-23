@@ -171,6 +171,14 @@ def main() -> int:
                     raise RuntimeError("构建 RKNN 模型失败")
                 if rknn.export_rknn(str(out)) != 0:
                     raise RuntimeError("导出 RKNN 模型失败")
+            except AttributeError as exc:
+                if "onnx" in str(exc):
+                    # 新版 onnx 移除了顶层 mapping 属性，rknn-toolkit2 旧代码依赖它
+                    raise RuntimeError(
+                        "onnx 版本与 rknn-toolkit2 不兼容（新版 onnx 移除了 mapping），"
+                        "请执行：python -m pip install \"onnx==1.14.1\""
+                    ) from exc
+                raise
             finally:
                 rknn.release()
             out_path = out
