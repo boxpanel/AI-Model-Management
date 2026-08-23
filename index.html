@@ -44,6 +44,7 @@
     .actions { display:flex; justify-content:flex-end; gap:12px; margin-top:25px; }.btn { height:42px; padding:0 17px; border-radius:8px; border:1px solid #d9e0ec; background:#fff; color:#44516a; cursor:pointer; font:inherit; font-size:14px; }.btn.primary { border-color:var(--brand); background:var(--brand); color:#fff; box-shadow:0 6px 13px rgba(49,94,234,.22); }.btn:disabled { opacity:.55; cursor:not-allowed; box-shadow:none; }.toast { position:fixed; right:25px; bottom:24px; background:#17315a; color:#fff; padding:12px 17px; border-radius:9px; font-size:13px; opacity:0; transform:translateY(12px); pointer-events:none; transition:.25s; }.toast.show { opacity:1; transform:none; }
     .detect-note { margin-top:6px; min-height:16px; color:var(--muted); font-size:11px; }.training-screen { display:none; }.training-head { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:23px; }.training-head h1 { margin-bottom:7px; }.running { display:inline-flex; align-items:center; gap:8px; padding:8px 11px; color:#287b63; background:#effbf7; border-radius:7px; font-size:13px; }.pulse { width:8px; height:8px; border-radius:50%; background:#27a87a; animation:pulse 1.4s infinite; } @keyframes pulse { 50% { opacity:.35; transform:scale(.7); } }
     .metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:15px; margin-bottom:21px; }.metric { padding:18px; }.metric span { display:block; color:var(--muted); font-size:12px; margin-bottom:8px; }.metric b { font-size:22px; font-weight:600; }.metric em { font-style:normal; font-size:12px; color:var(--success); margin-left:5px; }
+    .job-list { display:grid; grid-template-columns:repeat(auto-fill,minmax(330px,1fr)); gap:15px; }.job-card { border:1px solid var(--line); border-radius:12px; padding:17px; background:#fff; }.job-card .job-head { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }.job-card .job-head h3 { margin:0 0 6px; font-size:15px; }.job-card .job-head p { margin:0; color:var(--muted); font-size:12px; }.job-status { display:inline-flex; align-items:center; gap:7px; padding:5px 10px; border-radius:7px; font-size:12px; white-space:nowrap; }.job-status.running { color:#287b63; background:#effbf7; }.job-status.completed { color:#1a9a71; background:#effbf7; }.job-status.stopped, .job-status.error, .job-status.interrupted { color:#bd4c55; background:#fff6f6; }.job-status.queued { color:#9a6700; background:#fff3e0; }.job-metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:14px 0 11px; }.job-metrics div { background:#f7f9fd; border-radius:8px; padding:9px 10px; }.job-metrics span { display:block; color:var(--muted); font-size:11px; margin-bottom:4px; }.job-metrics b { font-size:14px; font-weight:600; color:#43516a; }.job-bar { height:7px; border-radius:6px; background:#e9eef8; overflow:hidden; }.job-bar div { height:100%; border-radius:inherit; background:linear-gradient(90deg,#315eea,#6e8ffc); transition:width .5s; }.job-detail { display:none; margin-top:13px; border-top:1px dashed var(--line); padding-top:12px; }.job-detail .job-log { max-height:150px; overflow:auto; background:#121d33; color:#c5d2ee; font-family:Consolas,monospace; font-size:11px; line-height:1.7; border-radius:8px; padding:10px; margin-top:10px; }.job-detail canvas { display:block; width:100%; height:150px; }
     .hardware-card { margin-bottom:21px; }.hardware-title { display:flex; align-items:center; justify-content:space-between; margin-bottom:17px; gap:14px; }.hardware-title .text-small { color:var(--muted); }.hardware-actions { display:flex; align-items:center; justify-content:flex-end; gap:9px; flex-wrap:wrap; }.gauges { display:grid; grid-template-columns:repeat(3,1fr); gap:22px; }.gauge { display:grid; grid-template-columns:88px 1fr; align-items:center; gap:13px; min-width:0; }.dial { --value:0; width:84px; height:84px; display:grid; place-items:center; border-radius:50%; background:conic-gradient(#315eea calc(var(--value) * 1%), #e9eef8 0); position:relative; }.dial::after { content:""; position:absolute; inset:8px; border-radius:50%; background:#fff; }.dial b { position:relative; z-index:1; font-size:17px; }.gauge h3 { margin:0 0 5px; font-size:14px; }.gauge p { margin:0; color:var(--muted); font-size:12px; line-height:1.55; }.gauge .gauge-value { display:block; margin-top:4px; color:#43516a; font-size:12px; }
     .dashboard-status-bar { display:flex; justify-content:flex-end; align-items:flex-end; gap:9px; flex-wrap:wrap; margin-bottom:8px; }.environment-controls { display:grid; gap:6px; justify-items:end; }.dashboard-model-select { display:flex; align-items:center; gap:7px; color:#526078; font-size:13px; }.dashboard-model-select select { width:auto; min-width:105px; height:36px; }.hardware-card { margin-bottom:21px; }.hardware-title { display:flex; align-items:center; justify-content:space-between; margin-bottom:17px; gap:14px; }.hardware-title .text-small { color:var(--muted); }.gauges { display:grid; grid-template-columns:repeat(3,1fr); gap:22px; }.gauge { display:grid; grid-template-columns:88px 1fr; align-items:center; gap:13px; min-width:0; }.dial { --value:0; width:84px; height:84px; display:grid; place-items:center; border-radius:50%; background:conic-gradient(#315eea calc(var(--value) * 1%), #e9eef8 0); position:relative; }.dial::after { content:""; position:absolute; inset:8px; border-radius:50%; background:#fff; }.dial b { position:relative; z-index:1; font-size:17px; }.gauge h3 { margin:0 0 5px; font-size:14px; }.gauge p { margin:0; color:var(--muted); font-size:12px; line-height:1.55; }.gauge .gauge-value { display:block; margin-top:4px; color:#43516a; font-size:12px; }
     .progress-card { margin-bottom:21px; }.progress-title { display:flex; justify-content:space-between; font-size:14px; margin-bottom:14px; }.bar { height:9px; overflow:hidden; border-radius:8px; background:#e9eef8; }.bar div { width:0%; height:100%; border-radius:inherit; background:linear-gradient(90deg,#315eea,#6e8ffc); transition:width .5s; }.progress-foot { display:flex; justify-content:space-between; color:var(--muted); font-size:12px; margin-top:10px; }
@@ -107,11 +108,8 @@
       <div class="actions"><button class="btn" id="save-draft" type="button">保存为草稿</button><button class="btn primary" id="start" type="button">开始训练</button></div>
       </div>
       <section class="training-screen" id="training-screen">
-      <div class="training-head"><div><h1 id="running-title">yolo-exp-001</h1><p class="subtitle">YOLOv11 · coco8.yaml · device=0,1 · batch=8</p></div><div id="training-status-area"><div class="running"><span class="pulse"></span>训练进行中</div></div></div>
-        <div class="metrics"><div class="card metric"><span>当前轮次</span><b id="epoch-value">1 / 100</b></div><div class="card metric"><span>训练损失</span><b id="loss-value">2.481</b><em id="loss-change">↓ 0.00</em></div><div class="card metric"><span>mAP50</span><b id="map-value">0.126</b><em id="map-change">↑ 0.00</em></div><div class="card metric"><span>剩余时间</span><b id="time-value">2小时 14分</b></div></div>
-        <div class="card progress-card"><div class="progress-title"><b>训练进度</b><b id="progress-percent">1%</b></div><div class="bar"><div id="progress-bar"></div></div><div class="progress-foot"><span id="step-value">Step 1 / 100</span><span>自动保存检查点：每 10 轮</span></div></div>
-        <div class="training-grid"><section class="card chart-box"><div class="chart-head"><h2>损失曲线</h2><div class="legend"><span><i></i>训练损失</span><span><i class="val"></i>验证损失</span></div></div><svg class="chart" viewBox="0 0 620 230" role="img" aria-label="实时训练和验证损失曲线"><line class="axis" x1="40" y1="18" x2="40" y2="196"/><line class="axis" x1="40" y1="196" x2="600" y2="196"/><line class="axis" x1="40" y1="62" x2="600" y2="62"/><line class="axis" x1="40" y1="106" x2="600" y2="106"/><line class="axis" x1="40" y1="151" x2="600" y2="151"/><text class="chart-label" x="8" y="65">3.0</text><text class="chart-label" x="8" y="109">2.0</text><text class="chart-label" x="8" y="154">1.0</text><text class="chart-label" x="37" y="216">0</text><text class="chart-label" x="570" y="216">100 epoch</text><polyline id="train-line" class="line-train" points="40,38 46,45"/><polyline id="val-line" class="line-val" points="40,32 46,40"/></svg></section><section class="card logs"><h2>训练日志</h2><div class="log-content" id="logs"></div></section></div>
-        <div class="actions"><button class="btn stop" id="stop" type="button">停止训练</button></div>
+        <div class="training-head"><div><h1>训练任务看板</h1><p class="subtitle">多任务并行训练：同一张 GPU 同一时间只能被一个任务占用，占用中的 GPU 在设备选择中不可选。</p></div><div class="header-actions"><button class="btn primary" id="new-training-btn" type="button">+ 新建训练任务</button></div></div>
+        <div id="job-list" class="job-list"><div class="empty-state" style="grid-column:1/-1">暂无训练任务</div></div>
       </section>
       </div>
       <section class="view" data-view="datasets">
@@ -243,9 +241,8 @@
     const API_BASE = (window.location.origin && /^https?:/.test(window.location.origin))
       ? window.location.origin
       : 'http://127.0.0.1:80';
-    let ws, uploadedWeightsPath = '', backendOnline = false, trainPoints = ['40,38'], valPoints = ['40,32'];
+    let ws, uploadedWeightsPath = '', backendOnline = false, trainPoints = ['40,38'], valPoints = ['40,32'], trainingJobs = {}, gpuOccCache = {}, deviceInfo = { gpuCount: 0, gpuNames: [], cpuModel: '', noteText: '' };
     let authToken = localStorage.getItem('visionlab-token') || '', appInited = false, wsStop = false;
-    let suppressAutoSwitch = false; // 停止训练后抑制 WS 自动切回训练界面（等待 worker 真正退出）
     let currentUserIsAdmin = false;
 
     async function api(path, options = {}) {
@@ -342,33 +339,33 @@
       ws.onmessage = event => {
         const payload = JSON.parse(event.data);
         if (payload.type === 'hardware') setHardwareMetrics(payload.data);
-        if (payload.type === 'metrics') applyTrainingMetrics(payload);
-        if (payload.type === 'log') addLog(payload.message, payload.level === 'ok' ? 'log-ok' : payload.level === 'error' ? '' : 'log-info');
-        if (payload.type === 'status') applyTrainingMetrics(payload.data || payload);
-        const statusData = payload.type === 'status' ? (payload.data || payload) : payload;
-        if (statusData && statusData.state && statusData.state !== 'running') suppressAutoSwitch = false;
-        if ((payload.type === 'metrics' || payload.type === 'status') && statusData && statusData.state === 'running') {
-          if (!suppressAutoSwitch && document.getElementById('setup-screen').style.display !== 'none') switchToTrainingScreen(statusData.task_name);
-        }
+        if (payload.type === 'metrics') updateJobCard(payload);
+        if (payload.type === 'log') addLog(payload.message, payload.level === 'ok' ? 'log-ok' : payload.level === 'error' ? '' : 'log-info', payload.task_name);
+        if (payload.type === 'status') renderTrainingDashboard((payload.data && payload.data.tasks) || []);
       };
       ws.onclose = () => { if (!wsStop) setTimeout(connectWebSocket, 2500); };
     }
-    function switchToTrainingScreen(taskName) {
+    function switchToTraining() {
       document.getElementById('setup-screen').style.display = 'none';
       document.getElementById('training-screen').style.display = 'block';
-      if (taskName) document.getElementById('running-title').textContent = taskName;
+    }
+    function switchToSetup() {
+      document.getElementById('training-screen').style.display = 'none';
+      document.getElementById('setup-screen').style.display = 'block';
     }
     async function checkTrainingRecovery() {
       try {
         const status = await api('/api/training/status');
-        if (status && status.state === 'running') {
-          switchToTrainingScreen(status.task_name);
-          applyTrainingMetrics(status);
-          addLog('已恢复上次会话，正在显示进行中的训练任务…', 'log-info');
-        } else if (status && (status.state === 'completed' || status.state === 'stopped' || status.state === 'error' || status.state === 'interrupted')) {
-          // 训练已结束：停留在初始化界面即可，仅提示最近一次训练结果
-          showToast('检测到最近一次训练已结束');
+        if (status && Array.isArray(status.tasks) && status.tasks.length) {
+          renderTrainingDashboard(status.tasks);
+          if (status.state === 'running') {
+            switchToTraining();
+            showToast('已恢复训练任务看板');
+          } else {
+            showToast('检测到最近训练任务已结束');
+          }
         }
+        refreshGpuOccupancy();
       } catch (_) {}
     }
     async function refreshEnvironment(modelName) {
@@ -396,24 +393,31 @@
       }
     }
 
-    function renderDeviceChips(gpuCount, gpuNames, cpuModel, noteText) {
+    function renderDeviceChips(gpuCount, gpuNames, cpuModel, noteText, occupancy) {
       const container = document.getElementById('device-options'), note = document.getElementById('gpu-detect');
       const nameList = Array.isArray(gpuNames) ? gpuNames : [];
       const short = (name, max) => (name && name.length > max ? name.slice(0, max - 1) + '…' : name || '');
+      const occ = occupancy || {};
+      deviceInfo = { gpuCount, gpuNames: nameList, cpuModel, noteText };
       container.innerHTML = '';
       if (gpuCount > 0) {
+        // 第一个空闲 GPU 默认选中（GPU0 被占用时自动落到下一张空闲卡）
+        let firstFree = -1;
+        for (let i = 0; i < gpuCount; i++) { if (!occ[String(i)]) { firstFree = i; break; } }
         for (let i = 0; i < gpuCount; i++) {
+          const owner = occ[String(i)];
           const label = document.createElement('label');
-          label.className = 'device-chip' + (i === 0 ? ' on' : '');
+          label.className = 'device-chip' + (i === firstFree ? ' on' : '');
           const cb = document.createElement('input');
           cb.type = 'checkbox';
           cb.value = String(i);
           cb.dataset.device = 'gpu';
-          if (i === 0) cb.checked = true;
+          cb.disabled = !!owner;
+          if (i === firstFree) cb.checked = true;
           label.appendChild(cb);
           label.appendChild(document.createTextNode(`GPU ${i} `));
-          const name = short(nameList[i], 28);
-          if (name) label.appendChild(document.createElement('small')).textContent = name;
+          if (owner) label.appendChild(document.createElement('small')).textContent = `已被「${owner}」占用`;
+          else { const name = short(nameList[i], 28); if (name) label.appendChild(document.createElement('small')).textContent = name; }
           container.appendChild(label);
         }
         const cpuLabel = document.createElement('label');
@@ -426,7 +430,10 @@
         cpuLabel.appendChild(document.createTextNode('CPU'));
         if (cpuModel) cpuLabel.appendChild(document.createElement('small')).textContent = short(cpuModel, 48);
         container.appendChild(cpuLabel);
-        note.textContent = noteText || `检测到 ${gpuCount} 张显卡，可多选启用多卡训练`;
+        const busy = Object.keys(occ).length;
+        note.textContent = busy
+          ? `检测到 ${gpuCount} 张显卡，其中 ${busy} 张被训练任务占用（不可选）`
+          : (noteText || `检测到 ${gpuCount} 张显卡，可多选启用多卡训练`);
       } else {
         const cpuLabel = document.createElement('label');
         cpuLabel.className = 'device-chip cpu-chip on';
@@ -458,6 +465,14 @@
           updateEstimate();
         });
       });
+    }
+    // 从训练状态接口获取 GPU 占用，重新渲染设备选择（占用中的 GPU 置灰不可选）
+    async function refreshGpuOccupancy() {
+      try {
+        const status = await api('/api/training/status');
+        gpuOccCache = (status && status.gpu_usage) || {};
+        renderDeviceChips(deviceInfo.gpuCount, deviceInfo.gpuNames, deviceInfo.cpuModel, deviceInfo.noteText, gpuOccCache);
+      } catch (_) {}
     }
 
     function getSelectedDevices() {
@@ -493,7 +508,7 @@
       // 数据加载线程自动适配 CPU 核数，直接显示实际使用的线程数（无需人为填写）
       const workersEl = document.getElementById('workers');
       if (workersEl) workersEl.value = '使用 ' + (env.cpu_count || '?') + ' 个线程';
-      renderDeviceChips(gpuCount, gpuNames, cpuModel, null);
+      renderDeviceChips(gpuCount, gpuNames, cpuModel, null, gpuOccCache);
       renderGpuPlaceholders(gpuCount, gpuNames[0] || '');
       updateEstimate();
     }
@@ -508,10 +523,10 @@
         renderer = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : '';
       } catch (_) {}
       if (renderer) {
-        renderDeviceChips(1, [renderer], coresText, '浏览器识别到显卡，训练仍以服务端检测结果为准');
+        renderDeviceChips(1, [renderer], coresText, '浏览器识别到显卡，训练仍以服务端检测结果为准', gpuOccCache);
         renderGpuPlaceholders(1, renderer);
       } else {
-        renderDeviceChips(0, [], coresText, '浏览器未提供显卡型号；可手动选择设备');
+        renderDeviceChips(0, [], coresText, '浏览器未提供显卡型号；可手动选择设备', gpuOccCache);
         renderGpuPlaceholders(0, '');
       }
       document.getElementById('cpu-model').textContent = cores ? `${cores} 个逻辑核心` : 'CPU 核心数不可用';
@@ -1373,48 +1388,145 @@
     });
     document.getElementById('convert-modal-close').addEventListener('click', closeConvertModal);
     loadWeightsSelect();
-    const logs = document.getElementById('logs');
-    function addLog(text, kind='') { const row=document.createElement('div'); row.className='log-row ' + kind; row.textContent=text; logs.appendChild(row); logs.parentElement.scrollTop=logs.parentElement.scrollHeight; }
+    function addLog(text, kind='', taskName='') {
+      if (taskName) {
+        const card = document.getElementById(taskCardId(taskName));
+        const body = card && card.querySelector('.job-log-body');
+        if (body) {
+          const row = document.createElement('div');
+          row.className = 'log-row ' + kind;
+          row.textContent = text;
+          body.appendChild(row);
+          body.parentElement.scrollTop = body.parentElement.scrollHeight;
+          return;
+        }
+      }
+      // 无对应任务卡片时忽略（多任务日志按任务展示）
+    }
     function formatEta(seconds) {
       if (seconds == null) return '--';
       const remain = Math.max(0, Number(seconds));
       return remain > 59 ? `${Math.floor(remain / 60)}小时 ${remain % 60}分` : `${remain} 分`;
     }
-    function applyTrainingMetrics(data) {
-      if (!data) return;
-      const state = data.state || 'idle';
-      const epoch = data.epoch || 0;
-      const total = data.total_epochs || Number(document.getElementById('epochs').value) || 100;
-      const progress = data.progress != null ? data.progress : (total ? epoch / total * 100 : 0);
-      if (Array.isArray(data.train_points) && data.train_points.length) {
-        trainPoints = data.train_points.map(point => Array.isArray(point) ? point.join(',') : point);
-        valPoints = (data.val_points || []).map(point => Array.isArray(point) ? point.join(',') : point);
+    function taskCardId(name) { return 'job-' + String(name || 'task').replace(/[^A-Za-z0-9._-]/g, '_'); }
+    const JOB_STATE_TEXT = { running: '训练进行中', completed: '训练完成', stopped: '已停止', error: '训练失败', interrupted: '已中断', queued: '排队中' };
+    function renderTrainingDashboard(tasks) {
+      const box = document.getElementById('job-list');
+      if (!box) return;
+      box.innerHTML = '';
+      const list = Array.isArray(tasks) ? tasks : [];
+      trainingJobs = {};
+      if (!list.length) {
+        box.innerHTML = '<div class="empty-state" style="grid-column:1/-1">暂无训练任务</div>';
+        return;
       }
-      document.getElementById('train-line').setAttribute('points', trainPoints.join(' '));
-      document.getElementById('val-line').setAttribute('points', valPoints.join(' '));
-      document.getElementById('epoch-value').textContent = `${epoch} / ${total}`;
-      document.getElementById('loss-value').textContent = data.box_loss != null ? Number(data.box_loss).toFixed(3) : '--';
-      document.getElementById('loss-change').textContent = data.box_loss != null ? `↓ ${Math.max(0, 2.48 - data.box_loss).toFixed(2)}` : '↓ 0.00';
-      document.getElementById('map-value').textContent = data.map50 != null ? Number(data.map50).toFixed(3) : '--';
-      document.getElementById('map-change').textContent = data.map50 != null ? `↑ ${Math.max(0, data.map50 - 0.126).toFixed(2)}` : '↑ 0.00';
-      document.getElementById('progress-percent').textContent = `${Math.round(progress)}%`;
-      document.getElementById('step-value').textContent = `Step ${epoch} / ${total}`;
-      document.getElementById('progress-bar').style.width = `${Math.min(100, progress)}%`;
-      document.getElementById('time-value').textContent = formatEta(data.eta_seconds);
-      const running = document.querySelector('.running');
-      if (state === 'completed') running.innerHTML = '<span class="pulse"></span>训练已完成';
-      else if (state === 'stopped') running.textContent = '训练已停止';
-      else if (state === 'error') running.textContent = '训练失败';
-      else if (state === 'interrupted') running.textContent = '训练已中断';
-      else if (state === 'running') running.innerHTML = '<span class="pulse"></span>训练进行中';
-      // 训练结束：自动返回训练管理初始界面（无需再点击按钮）
+      list.forEach(t => { trainingJobs[t.task_name] = t; box.appendChild(createJobCard(t)); });
+      refreshGpuOccupancy();
+    }
+    function createJobCard(data) {
+      const div = document.createElement('div');
+      div.className = 'job-card';
+      div.id = taskCardId(data.task_name);
+      const state = data.state || 'running';
+      div.innerHTML = `
+        <div class="job-head"><div><h3>${data.task_name}</h3><p class="job-subtitle">${data.model_version || ''} · ${data.dataset || ''} · device=${data.device || ''}</p></div><span class="job-status ${state}">${JOB_STATE_TEXT[state] || state}</span></div>
+        <div class="job-metrics"><div><span>轮次</span><b>0 / 0</b></div><div><span>训练损失</span><b>--</b></div><div><span>mAP50</span><b>--</b></div><div><span>剩余时间</span><b>--</b></div></div>
+        <div class="job-bar"><div style="width:0%"></div></div>
+        <div class="job-head" style="margin-top:11px"><button class="btn-link" data-job-detail="${data.task_name}">查看详情</button><button class="btn-link danger" data-job-stop="${data.task_name}" type="button" ${state === 'running' ? '' : 'style="display:none"'}>停止训练</button></div>
+        <div class="job-detail"><canvas width="320" height="150"></canvas><div class="job-log"><div class="job-log-body"></div></div></div>`;
+      div.querySelector('[data-job-detail]').addEventListener('click', () => {
+        const detail = div.querySelector('.job-detail');
+        const open = detail.style.display !== 'none';
+        detail.style.display = open ? 'none' : 'block';
+        if (!open) { const job = trainingJobs[data.task_name] || data; drawLossChart(div.querySelector('canvas'), job.train_points || [], job.val_points || []); }
+      });
+      div.querySelector('[data-job-stop]').addEventListener('click', () => stopJob(data.task_name));
+      updateJobCard(data, div);
+      return div;
+    }
+    function updateJobCard(data, card) {
+      if (!data || !data.task_name) return;
+      const box = document.getElementById('job-list');
+      if (!box) return;
+      if (!card) card = document.getElementById(taskCardId(data.task_name));
+      if (!card) {
+        if (document.getElementById('setup-screen').style.display !== 'none') return; // 后台任务不强制创建卡片
+        card = createJobCard(data);
+        box.appendChild(card);
+      }
+      trainingJobs[data.task_name] = Object.assign({}, trainingJobs[data.task_name] || {}, data);
+      const merged = trainingJobs[data.task_name];
+      const state = data.state || merged.state || 'running';
+      const epoch = data.epoch != null ? data.epoch : (merged.epoch || 0);
+      const total = data.total_epochs != null ? data.total_epochs : (merged.total_epochs || 0);
+      const progress = data.progress != null ? Number(data.progress) : (total ? epoch / total * 100 : 0);
+      const statusEl = card.querySelector('.job-status');
+      statusEl.className = 'job-status ' + state;
+      statusEl.textContent = JOB_STATE_TEXT[state] || state;
+      card.querySelector('.job-subtitle').textContent = `${merged.model_version || ''} · ${merged.dataset || ''} · device=${merged.device || ''}`;
+      const bs = card.querySelectorAll('.job-metrics b');
+      bs[0].textContent = `${epoch} / ${total}`;
+      bs[1].textContent = data.box_loss != null ? Number(data.box_loss).toFixed(3) : '--';
+      bs[2].textContent = data.map50 != null ? Number(data.map50).toFixed(3) : '--';
+      bs[3].textContent = formatEta(data.eta_seconds);
+      card.querySelector('.job-bar div').style.width = `${Math.min(100, progress)}%`;
+      const stopBtn = card.querySelector('[data-job-stop]');
+      if (stopBtn) stopBtn.style.display = state === 'running' ? '' : 'none';
+      // 初始化日志（仅首次创建时填充，实时日志由 addLog 追加）
+      const body = card.querySelector('.job-log-body');
+      if (body && body.childElementCount === 0 && Array.isArray(data.logs) && data.logs.length) {
+        const rows = data.logs.map(l => { const r = document.createElement('div'); r.className = 'log-row log-info'; r.textContent = l.message; return r; });
+        rows.forEach(r => body.appendChild(r));
+        body.parentElement.scrollTop = body.parentElement.scrollHeight;
+      }
+      // 曲线（展开时刷新）
+      const detail = card.querySelector('.job-detail');
+      if (detail.style.display === 'block') {
+        drawLossChart(card.querySelector('canvas'), merged.train_points || [], merged.val_points || []);
+      }
+      // 终态且无运行任务：自动返回初始化界面
       if (state === 'completed' || state === 'stopped' || state === 'error' || state === 'interrupted') {
-        if (document.getElementById('training-screen').style.display !== 'none') {
-          document.getElementById('training-screen').style.display = 'none';
-          document.getElementById('setup-screen').style.display = 'block';
-          resetSetupForm();
-        }
+        setTimeout(() => {
+          const anyRun = document.querySelectorAll('#job-list .job-status.running').length > 0;
+          if (!anyRun && document.getElementById('training-screen').style.display !== 'none') {
+            switchToSetup();
+            resetSetupForm();
+            showToast('训练任务已结束');
+          }
+        }, 600);
+      } else if (state === 'running') {
+        refreshGpuOccupancy();
       }
+    }
+    function drawLossChart(canvas, trainPts, valPts) {
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const W = canvas.width, H = canvas.height;
+      ctx.clearRect(0, 0, W, H);
+      const toXY = p => Array.isArray(p) ? [Number(p[0]), Number(p[1])] : String(p).split(',').map(Number);
+      const t = (trainPts || []).map(toXY).filter(p => p.length === 2 && isFinite(p[0]) && isFinite(p[1]));
+      const v = (valPts || []).map(toXY).filter(p => p.length === 2 && isFinite(p[0]) && isFinite(p[1]));
+      if (!t.length && !v.length) { ctx.fillStyle = '#8792a8'; ctx.font = '12px sans-serif'; ctx.fillText('暂无数据', W / 2 - 30, H / 2); return; }
+      const maxX = Math.max(1, ...t.map(p => p[0]), ...v.map(p => p[0]));
+      const maxY = Math.max(0.1, ...t.map(p => p[1]), ...v.map(p => p[1])) * 1.1;
+      const px = (x, y) => [10 + (x / maxX) * (W - 20), H - 10 - (y / maxY) * (H - 20)];
+      ctx.strokeStyle = '#e3e8f1'; ctx.strokeRect(0.5, 0.5, W - 1, H - 1);
+      const draw = (pts, color) => { ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = 2; pts.forEach((p, i) => { const [X, Y] = px(p[0], p[1]); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }); ctx.stroke(); };
+      draw(t, '#315eea'); draw(v, '#e69a37');
+    }
+    async function stopJob(taskName) {
+      if (!confirm('确定停止训练任务「' + taskName + '」？')) return;
+      try {
+        const result = await api('/api/training/stop?task=' + encodeURIComponent(taskName), { method: 'POST' });
+        if (result.ok) {
+          addLog('已请求停止训练：' + taskName, 'log-ok', taskName);
+          showToast('已请求停止训练：' + taskName);
+          if (result.status && Array.isArray(result.status.tasks)) renderTrainingDashboard(result.status.tasks);
+          refreshGpuOccupancy();
+        } else {
+          showToast(result.error || '停止训练失败');
+        }
+      } catch (_) { showToast('停止训练失败'); }
     }
     // 返回训练管理页面时初始化表单参数（模型 / 数据集 / 设备选择保持不变）
     function resetSetupForm() {
@@ -1468,16 +1580,7 @@
     });
     document.getElementById('start').addEventListener('click', async () => {
       if (!environmentReady) { showToast('训练环境尚未就绪'); return; }
-      suppressAutoSwitch = false;
       const config = buildTrainingConfig();
-      document.getElementById('setup-screen').style.display = 'none';
-      document.getElementById('training-screen').style.display = 'block';
-      document.getElementById('running-title').textContent = config.task_name;
-      document.querySelector('.training-head .subtitle').textContent = `${config.model_version} · ${config.dataset} · device=${config.device} · batch=${config.batch}`;
-      document.querySelector('.running').innerHTML = '<span class="pulse"></span>训练进行中';
-      logs.innerHTML = '';
-      trainPoints = ['40,38'];
-      valPoints = ['40,32'];
       try {
         const result = await api('/api/training/start', {
           method: 'POST',
@@ -1485,34 +1588,18 @@
           body: JSON.stringify(config)
         });
         if (!result.ok) {
-          addLog(result.error || '训练启动失败', '');
           showToast(result.error || '训练启动失败');
-          document.querySelector('.running').textContent = '启动失败';
           return;
         }
-        addLog('训练任务已提交，等待训练环境启动…', 'log-info');
-        applyTrainingMetrics(result.status);
+        switchToTraining();
+        renderTrainingDashboard((result.status && result.status.tasks) || []);
+        refreshGpuOccupancy();
+        showToast('训练任务已提交：' + config.task_name);
       } catch (error) {
-        addLog('训练服务请求失败：' + (parseErr(error) || error.message || '未知错误'), '');
-        showToast('训练服务请求失败');
-        document.querySelector('.running').textContent = '连接失败';
+        showToast('训练服务请求失败：' + (parseErr(error) || error.message || '未知错误'));
       }
     });
-    document.getElementById('stop').addEventListener('click', async () => {
-      try {
-        await api('/api/training/stop', { method: 'POST' });
-        addLog('训练已由用户停止，当前检查点已保存。', 'log-ok');
-        showToast('训练已停止');
-        // 停止后返回训练管理初始界面；抑制 WS 因 worker 未完全退出而推送的 running 状态自动切屏
-        suppressAutoSwitch = true;
-        setTimeout(() => { suppressAutoSwitch = false; }, 20000);
-        document.getElementById('training-screen').style.display = 'none';
-        document.getElementById('setup-screen').style.display = 'block';
-        resetSetupForm();
-      } catch (_) {
-        showToast('停止训练失败');
-      }
-    });
+    document.getElementById('new-training-btn').addEventListener('click', () => { resetSetupForm(); switchToSetup(); });
   </script>
 </body>
 </html>

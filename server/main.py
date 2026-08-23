@@ -780,8 +780,8 @@ async def training_start(config: TrainingStartRequest) -> dict[str, Any]:
 
 
 @app.post("/api/training/stop")
-async def training_stop() -> dict[str, Any]:
-    manager.stop()
+async def training_stop(task: str = "") -> dict[str, Any]:
+    manager.stop(task)
     return {"ok": True, "status": manager.get_status()}
 
 
