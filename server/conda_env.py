@@ -87,6 +87,19 @@ def resolve_env_for_model(model_version: str, preferred: str = "") -> Optional[s
             if env["name"] == matched and prefix and env["path"].startswith(prefix):
                 return matched
         return matched
+    # 精确候选未命中时，按家族关键词模糊匹配（兼容 yolov11 / yolo11 / ultralytics 等不同命名）
+    family_lower = family.lower()
+    for env in envs:
+        low = env["name"].lower()
+        hit = family_lower in low
+        if not hit and family == "YOLOv11":
+            hit = "yolo11" in low or "ultralytics" in low
+        elif not hit and family == "YOLOv8":
+            hit = "yolo8" in low
+        elif not hit and family == "YOLOv5":
+            hit = "yolo5" in low
+        if hit:
+            return env["name"]
     return None
 
 
