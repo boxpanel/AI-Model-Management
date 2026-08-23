@@ -581,6 +581,7 @@
       connectWebSocket();
       refreshEnvironment(document.getElementById('model').value);
       loadSettings();
+      loadDatasetConfigOptions();
       checkTrainingRecovery();
     }
     document.getElementById('login-btn').addEventListener('click', doLogin);
@@ -621,6 +622,25 @@
         else if (view === 'settings') showUserMgmt();
       });
     });
+    async function loadDatasetConfigOptions() {
+      // 训练页「数据集配置文件」下拉框：动态加载后端全部数据集 yaml（含新建的自定义数据集）
+      const select = document.getElementById('dataset-config');
+      if (!select) return;
+      const current = select.value;
+      try {
+        const items = await api('/api/datasets');
+        const names = Array.isArray(items) ? items.map(i => i.name).filter(Boolean) : [];
+        if (!names.length) return;
+        select.innerHTML = '';
+        names.forEach(n => {
+          const opt = document.createElement('option');
+          opt.textContent = n;
+          select.appendChild(opt);
+        });
+        if (current && names.includes(current)) select.value = current;
+        else if (select.options.length) select.value = select.options[0].value;
+      } catch (_) { /* 离线时保留静态选项 */ }
+    }
     async function loadDatasets() {
       const box = document.getElementById('dataset-list'), status = document.getElementById('dataset-list-status');
       try {
@@ -662,6 +682,7 @@
           box.appendChild(div);
         });
       }
+      loadDatasetConfigOptions();
     }
     function formatTime(iso) {
       if (!iso) return '—';
