@@ -1301,6 +1301,7 @@
       const select = document.getElementById('weights-select');
       if (!select) return;
       const token = ++loadWeightsSelectToken;
+      const prevValue = select.value;  // 保留用户当前选择（重建下拉后尽量不重置）
       const modelVersion = document.getElementById('model').value;
       const defaults = {
         'YOLO11': 'yolo11n.pt',
@@ -1367,8 +1368,9 @@
         });
       }
       if (token !== loadWeightsSelectToken) return;
-      // 默认选中官方预训练 n 尺寸（等价原「使用默认权重」）；上传的权重优先选中
-      select.value = defaults[modelVersion] || 'yolo11n.pt';
+      // 尽量保留用户原选择（训练结束/切换等重建下拉后不被重置为默认 n）；否则默认官方 n 尺寸；上传的权重优先
+      if (prevValue && Array.from(select.options).some(o => o.value === prevValue)) select.value = prevValue;
+      else select.value = defaults[modelVersion] || 'yolo11n.pt';
       if (uploadedWeightsPath) select.value = uploadedWeightsPath;
     }
     async function uploadWeights(file) {
