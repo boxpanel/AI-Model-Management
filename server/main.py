@@ -644,7 +644,7 @@ async def dataset_annotations_upload(
 @app.get("/api/models")
 async def models_list() -> list[dict[str, Any]]:
     runs_dir = _resolve_dir(db.get_setting("runs_dir", ""), "runs")
-    return list_models(BASE_DIR, runs_dirs=[runs_dir])
+    return list_models(BASE_DIR, runs_dirs=[runs_dir], db=db)
 
 
 @app.get("/api/models/download")

@@ -746,8 +746,9 @@
           const div = document.createElement('div'); div.className = 'list-item';
           const timeLabel = item.source === 'training' ? '最后训练' : '上传时间';
           const isPt = item.path && item.path.toLowerCase().endsWith('.pt');
+          const verBadge = item.model_version ? `<span class="badge custom">${item.model_version}</span>` : '';
           const actions = item.path ? `<div class="item-actions"><button class="btn-link" data-model-dl="${encodeURIComponent(item.path)}" data-model-name="${item.name}">下载</button>${isPt ? `<button class="btn-link" data-model-convert="${encodeURIComponent(item.path)}" data-model-name="${item.name}">转换</button>` : ''}<button class="btn-link danger" data-model-del="${encodeURIComponent(item.path)}">删除</button></div>` : '';
-          div.innerHTML = '<h3>' + item.name + '</h3><p>' + (item.path || '—') + '</p><div class="meta"><span>' + (item.size_mb != null ? item.size_mb + ' MB' : '—') + '</span><span class="badge ' + (item.source === 'training' ? 'training' : 'upload') + '">' + (item.source === 'training' ? '训练产出' : '已上传') + '</span></div><div class="time-row"><span>' + timeLabel + '</span><b>' + formatTime(item.updated_at) + '</b></div>' + actions;
+          div.innerHTML = '<h3>' + item.name + '</h3><p>' + (item.path || '—') + '</p><div class="meta"><span>' + (item.size_mb != null ? item.size_mb + ' MB' : '—') + '</span>' + verBadge + '<span class="badge ' + (item.source === 'training' ? 'training' : 'upload') + '">' + (item.source === 'training' ? '训练产出' : '已上传') + '</span></div><div class="time-row"><span>' + timeLabel + '</span><b>' + formatTime(item.updated_at) + '</b></div>' + actions;
           box.appendChild(div);
           const convBtn = div.querySelector('[data-model-convert]');
           if (convBtn) convBtn.addEventListener('click', () => openConvertModal(convBtn.dataset.modelConvert, convBtn.dataset.modelName));
