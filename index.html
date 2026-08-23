@@ -232,7 +232,7 @@
     <div class="modal" style="width:min(420px,92vw)">
       <div class="modal-head"><h2>操作确认</h2></div>
       <p id="confirm-text" style="color:#44516a;font-size:14px;line-height:1.7;margin:0 0 22px"></p>
-      <div class="actions" style="margin-top:0"><button class="btn" id="confirm-cancel" type="button">取消</button><button class="btn primary" id="confirm-ok" type="button">确定</button></div>
+      <div class="actions" style="margin-top:0"><button class="btn primary" id="confirm-ok" type="button">确定</button><button class="btn" id="confirm-cancel" type="button">取消</button></div>
     </div>
   </div>
   <div class="login-mask" id="login-mask" style="display:none">
@@ -730,6 +730,12 @@
         { name: 'yolo-exp-002/best.pt', path: 'runs/yolo-exp-002/weights/best.pt', size: '6.4 MB', tag: '训练产出', time: daysAgo(1) }
       ];
     };
+    // 前端兜底：从文件名解析模型版本（yolo11n.pt → YOLO11n、yolov5nu.pt → YOLOv5nu），解析不出返回空
+    function parseModelVersion(name) {
+      const m = String(name || '').toLowerCase().match(/^yolo(11|v8|v5)([nsmlx])(u)?\.(pt|onnx|engine|torchscript|xml|rknn)$/);
+      if (!m) return '';
+      return ({ 11: 'YOLO11', v8: 'YOLOv8', v5: 'YOLOv5' })[m[1]] + m[2] + (m[3] || '');
+    }
     async function loadModels() {
       const box = document.getElementById('model-list'), status = document.getElementById('model-list-status');
       try {
@@ -746,9 +752,12 @@
           const div = document.createElement('div'); div.className = 'list-item';
           const timeLabel = item.source === 'training' ? '最后训练' : '上传时间';
           const isPt = item.path && item.path.toLowerCase().endsWith('.pt');
-          const verBadge = item.model_version ? `<span class="badge custom">${item.model_version}</span>` : '';
+          // 模型版本：优先后端解析；后端缺失时前端从文件名兜底解析（yolo11n.pt → YOLO11n）
+          const ver = item.model_version || parseModelVersion(item.name) || '';
+          const verBadge = ver ? `<span class="badge custom">${ver}</span>` : '';
+          const title = ver ? item.name + '（' + ver + '）' : item.name;
           const actions = item.path ? `<div class="item-actions"><button class="btn-link" data-model-dl="${encodeURIComponent(item.path)}" data-model-name="${item.name}">下载</button>${isPt ? `<button class="btn-link" data-model-convert="${encodeURIComponent(item.path)}" data-model-name="${item.name}">转换</button>` : ''}<button class="btn-link danger" data-model-del="${encodeURIComponent(item.path)}">删除</button></div>` : '';
-          div.innerHTML = '<h3>' + item.name + '</h3><p>' + (item.path || '—') + '</p><div class="meta"><span>' + (item.size_mb != null ? item.size_mb + ' MB' : '—') + '</span>' + verBadge + '<span class="badge ' + (item.source === 'training' ? 'training' : 'upload') + '">' + (item.source === 'training' ? '训练产出' : '已上传') + '</span></div><div class="time-row"><span>' + timeLabel + '</span><b>' + formatTime(item.updated_at) + '</b></div>' + actions;
+          div.innerHTML = '<h3>' + title + '</h3><p>' + (item.path || '—') + '</p><div class="meta"><span>' + (item.size_mb != null ? item.size_mb + ' MB' : '—') + '</span>' + verBadge + '<span class="badge ' + (item.source === 'training' ? 'training' : 'upload') + '">' + (item.source === 'training' ? '训练产出' : '已上传') + '</span></div><div class="time-row"><span>' + timeLabel + '</span><b>' + formatTime(item.updated_at) + '</b></div>' + actions;
           box.appendChild(div);
           const convBtn = div.querySelector('[data-model-convert]');
           if (convBtn) convBtn.addEventListener('click', () => openConvertModal(convBtn.dataset.modelConvert, convBtn.dataset.modelName));
