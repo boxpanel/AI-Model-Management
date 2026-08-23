@@ -232,26 +232,31 @@ def main() -> int:
                     raise RuntimeError("加载 ONNX 模型失败")
                 # 构建 IR 图在 CPU 上进行，首次构建可能需要数分钟，先更新状态避免用户误以为卡死
                 state.update(state="running", message="正在构建 RKNN 模型（首次构建可能需要数分钟，请耐心等待）…", progress=45)
-                # 构建期间用后台线程平滑推进进度（45 → 80），让用户直观看到仍在进行
+                # 构建期间用后台线程平滑推进进度（45 → 80），让用户直观看到仍在进行。
+                # 注意：pump 与主线程并发写 state 文件存在竞态（可能覆盖 completed），
+                # 故主线程用 done 事件通知 pump 立即退出，确保 completed 为最后一次写入。
                 import threading
+                done = threading.Event()
+
                 def _progress_pump() -> None:
-                    import time as _t
-                    step = 0
-                    while step < 35 and not stop_event["stop"]:  # 35 × 5s ≈ 3 分钟封顶
-                        _t.sleep(5)
-                        step += 1
-                        cur = state.read().get("progress", 0) or 0
-                        if cur >= 80:
-                            break
-                        state.update(progress=min(80, cur + 1))
+                    p = 45
+                    while p < 80 and not done.is_set() and not stop_event["stop"]:
+                        if done.wait(5):  # 主线程已完成，立即退出不再写 state
+                            return
+                        p += 1
+                        state.update(progress=p)
+
                 pump = threading.Thread(target=_progress_pump, daemon=True)
                 pump.start()
-                if rknn.build(do_quantization=False) != 0:
-                    raise RuntimeError("构建 RKNN 模型失败")
-                state.update(state="running", message="正在导出 RKNN 文件…", progress=85)
-                if rknn.export_rknn(str(out)) != 0:
-                    raise RuntimeError("导出 RKNN 模型失败")
-                state.update(progress=95)
+                try:
+                    if rknn.build(do_quantization=False) != 0:
+                        raise RuntimeError("构建 RKNN 模型失败")
+                    state.update(state="running", message="正在导出 RKNN 文件…", progress=85)
+                    if rknn.export_rknn(str(out)) != 0:
+                        raise RuntimeError("导出 RKNN 模型失败")
+                    state.update(progress=95)
+                finally:
+                    done.set()
             except AttributeError as exc:
                 if "onnx" in str(exc):
                     # onnx 1.19+ 移除了顶层 mapping 属性，rknn-toolkit2 旧代码依赖它
@@ -265,34 +270,36 @@ def main() -> int:
             out_path = out
         else:
             # NCNN 首次导出需下载 pnnx 工具链、OpenVINO 转换耗时，过程无反馈容易误以为卡死。
-            # 提示可能耗时，并用后台线程平滑推进进度（15 → 85）
+            # 提示可能耗时，并用后台线程平滑推进进度（15 → 85）。
+            # pump 与主线程并发写 state 存在竞态（可能覆盖 completed），故用 done 事件通知退出。
             hint = "（首次转换 NCNN 需下载 pnnx 工具链，可能需要数分钟，请耐心等待）" if fmt == "ncnn" else ""
             state.update(state="running", message=f"正在导出为 {fmt}…{hint}", progress=15)
             import threading
+            done = threading.Event()
 
             def _progress_pump() -> None:
-                import time as _t
-                step = 0
-                while step < 60 and not stop_event["stop"]:  # 60 × 5s ≈ 5 分钟封顶
-                    _t.sleep(5)
-                    step += 1
-                    cur = state.read().get("progress", 0) or 0
-                    if cur >= 85:
-                        break
-                    state.update(progress=min(85, cur + 1))
+                p = 15
+                while p < 85 and not done.is_set() and not stop_event["stop"]:
+                    if done.wait(5):  # 导出已完成，立即退出不再写 state
+                        return
+                    p += 1
+                    state.update(progress=p)
 
             pump = threading.Thread(target=_progress_pump, daemon=True)
             pump.start()
-            out_path = Path(
-                str(
-                    YOLO(str(src_path)).export(
-                        format=fmt,
-                        imgsz=config.get("imgsz", 640),
-                        device=device,
-                        verbose=False,
+            try:
+                out_path = Path(
+                    str(
+                        YOLO(str(src_path)).export(
+                            format=fmt,
+                            imgsz=config.get("imgsz", 640),
+                            device=device,
+                            verbose=False,
+                        )
                     )
                 )
-            )
+            finally:
+                done.set()
             state.update(progress=95)
         if stop_event["stop"]:
             state.update(state="stopped", message="转换已停止")
