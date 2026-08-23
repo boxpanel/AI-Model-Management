@@ -4,6 +4,7 @@ import asyncio
 import base64
 import io
 import json
+import shutil
 import struct
 import zipfile
 from pathlib import Path
@@ -665,9 +666,13 @@ async def model_delete(path: str) -> dict[str, Any]:
     target = (base / path).resolve()
     if not _is_within(base, target):
         raise HTTPException(status_code=400, detail="非法路径")
-    if not target.exists() or not target.is_file():
+    if not target.exists():
         raise HTTPException(status_code=404, detail="文件不存在")
-    target.unlink()
+    # OpenVINO / NCNN 等目录型转换产物按目录删除
+    if target.is_dir():
+        shutil.rmtree(target)
+    else:
+        target.unlink()
     return {"ok": True}
 
 
