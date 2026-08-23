@@ -1565,6 +1565,9 @@
       if (state === 'completed' || state === 'stopped' || state === 'error' || state === 'interrupted') {
         updateDashboardStatus(Object.values(trainingJobs));
         showToast('训练任务「' + data.task_name + '」已结束');
+        // 训练产出 best.pt 已生成：刷新「选择模型文件」下拉，训练页即可直接选用，无需刷新页面
+        loadWeightsSelect();
+        loadModels();
       } else if (state === 'running') {
         refreshGpuOccupancy();
         updateDashboardStatus(Object.values(trainingJobs));
