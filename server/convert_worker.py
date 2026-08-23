@@ -35,6 +35,26 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _onnx_matches_imgsz(onnx_path: Path, imgsz: int) -> bool:
+    """判断已有 ONNX 文件的输入尺寸是否与目标 imgsz 一致（不一致时不能复用）。
+
+    YOLO 导出 ONNX 输入为 [1,3,H,W]（或 [1,3,W,H]），末两维之一等于 imgsz 即匹配。
+    """
+    if not onnx_path.is_file():
+        return False
+    try:
+        import onnx
+
+        model = onnx.load(str(onnx_path))
+        for inp in model.graph.input:
+            dims = [d.dim_value for d in inp.type.tensor_type.shape.dim]
+            if imgsz in dims:
+                return True
+        return False
+    except Exception:
+        return False
+
+
 class WorkerState:
     """state 文件读写（临时文件 + rename 原子写，避免读到半截内容）。
 
@@ -212,11 +232,18 @@ def main() -> int:
             # 第零步：确保 onnx 版本与 rknn-toolkit2 兼容（不兼容时自动修复并重启自身进程）
             if not _ensure_onnx_compat():
                 return 1
-            # 第一步：导出 ONNX（rknn-toolkit2 从 ONNX 转换，opset 12 兼容性最佳）
-            state.update(state="running", message="正在导出 ONNX 中间文件…", progress=10)
-            onnx_out = Path(
-                str(YOLO(str(src_path)).export(format="onnx", imgsz=config.get("imgsz", 640), opset=12, dynamic=False, verbose=False))
-            )
+            # 第一步：导出 ONNX（rknn-toolkit2 从 ONNX 转换，opset 12 兼容性最佳）。
+            # 若同目录已存在相同输入尺寸的 ONNX 文件则直接复用，避免重复导出耗时
+            imgsz = config.get("imgsz", 640)
+            onnx_candidate = src_path.with_suffix(".onnx")
+            if _onnx_matches_imgsz(onnx_candidate, imgsz):
+                state.update(state="running", message="正在加载已有 ONNX 中间文件…", progress=15)
+                onnx_out = onnx_candidate
+            else:
+                state.update(state="running", message="正在导出 ONNX 中间文件…", progress=10)
+                onnx_out = Path(
+                    str(YOLO(str(src_path)).export(format="onnx", imgsz=imgsz, opset=12, dynamic=False, verbose=False))
+                )
             state.update(state="running", message="正在加载 ONNX 模型…", progress=30)
             # 第二步：rknn-toolkit2 将 ONNX 转换为 RKNN（内部依赖 pkg_resources，先确保可用）
             if not _ensure_pkg_resources():
