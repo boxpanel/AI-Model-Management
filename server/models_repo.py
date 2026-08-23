@@ -11,19 +11,27 @@ DIR_MARKER = "_model"
 
 
 def _entry_size(path: Path) -> int:
-    if path.is_dir():
-        return sum(p.stat().st_size for p in path.rglob("*") if p.is_file())
-    return path.stat().st_size
+    try:
+        if path.is_dir():
+            return sum(p.stat().st_size for p in path.rglob("*") if p.is_file())
+        return path.stat().st_size
+    except OSError:
+        return 0
 
 
 def _entry_info(base_dir: Path, path: Path, source: str, name: str) -> dict[str, Any]:
     rel = str(path.relative_to(base_dir)).replace("\\", "/")
+    try:
+        size_mb = round(_entry_size(path) / (1024 * 1024), 2)
+        mtime = path.stat().st_mtime
+    except OSError:
+        size_mb, mtime = 0.0, 0.0
     return {
         "name": name,
         "path": rel,
         "source": source,
-        "size_mb": round(_entry_size(path) / (1024 * 1024), 2),
-        "updated_at": datetime.fromtimestamp(path.stat().st_mtime).isoformat(),
+        "size_mb": size_mb,
+        "updated_at": datetime.fromtimestamp(mtime).isoformat(),
     }
 
 

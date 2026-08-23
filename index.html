@@ -758,25 +758,32 @@
             });
           });
         });
-      } catch (_) {
-        status.textContent = '离线模式 · 示例数据';
-        box.innerHTML = '';
-        OFFLINE_MODELS().forEach(item => {
-          const div = document.createElement('div'); div.className = 'list-item';
-          const timeLabel = item.tag === '训练产出' ? '最后训练' : '更新时间';
-          const actions = `<div class="item-actions"><button class="btn-link" data-model-dl-offline="${item.name}">下载</button><button class="btn-link" data-model-convert-offline="${item.path}">转换</button><button class="btn-link danger" data-model-del-offline="${item.name}">删除</button></div>`;
-          div.innerHTML = '<h3>' + item.name + '</h3><p>' + item.path + '</p><div class="meta"><span>' + item.size + '</span><span class="badge training">' + item.tag + '</span></div><div class="time-row"><span>' + timeLabel + '</span><b>' + item.time + '</b></div>' + actions;
-          box.appendChild(div);
-          div.querySelector('[data-model-dl-offline]').addEventListener('click', () => {
-            showToast('离线模式，示例数据不支持下载');
+      } catch (e) {
+        if (!backendOnline) {
+          // 服务不可达：展示离线示例数据
+          status.textContent = '离线模式 · 示例数据';
+          box.innerHTML = '';
+          OFFLINE_MODELS().forEach(item => {
+            const div = document.createElement('div'); div.className = 'list-item';
+            const timeLabel = item.tag === '训练产出' ? '最后训练' : '更新时间';
+            const actions = `<div class="item-actions"><button class="btn-link" data-model-dl-offline="${item.name}">下载</button><button class="btn-link" data-model-convert-offline="${item.path}">转换</button><button class="btn-link danger" data-model-del-offline="${item.name}">删除</button></div>`;
+            div.innerHTML = '<h3>' + item.name + '</h3><p>' + item.path + '</p><div class="meta"><span>' + item.size + '</span><span class="badge training">' + item.tag + '</span></div><div class="time-row"><span>' + timeLabel + '</span><b>' + item.time + '</b></div>' + actions;
+            box.appendChild(div);
+            div.querySelector('[data-model-dl-offline]').addEventListener('click', () => {
+              showToast('离线模式，示例数据不支持下载');
+            });
+            div.querySelector('[data-model-convert-offline]').addEventListener('click', () => {
+              openConvertModal(item.path, item.name);
+            });
+            div.querySelector('[data-model-del-offline]').addEventListener('click', () => {
+              showConfirm('确定删除示例权重文件「' + item.name + '」？', () => showToast('离线模式，示例数据删除后刷新页面恢复'));
+            });
           });
-          div.querySelector('[data-model-convert-offline]').addEventListener('click', () => {
-            openConvertModal(item.path, item.name);
-          });
-          div.querySelector('[data-model-del-offline]').addEventListener('click', () => {
-            showConfirm('确定删除示例权重文件「' + item.name + '」？', () => showToast('离线模式，示例数据删除后刷新页面恢复'));
-          });
-        });
+        } else {
+          // 服务可达但加载失败：显示真实错误，不伪造离线示例数据
+          status.textContent = '模型列表加载失败';
+          box.innerHTML = '<div class="empty-state">' + (parseErr(e) || '加载失败，请稍后重试') + '</div>';
+        }
       }
     }
     async function loadTasks() {
