@@ -7,8 +7,9 @@
   <style>
     :root { --ink:#16233e; --muted:#74809a; --line:#e7ebf2; --brand:#315eea; --brand-soft:#edf2ff; --bg:#f6f8fc; --card:#fff; --success:#1a9a71; }
     * { box-sizing:border-box; }
+    html, body { height:100%; }
     body { margin:0; background:var(--bg); color:var(--ink); font-family:"Microsoft YaHei", "PingFang SC", system-ui, sans-serif; }
-    .app { min-height:100vh; display:grid; grid-template-columns:244px 1fr; }
+    .app { height:100vh; display:grid; grid-template-columns:244px 1fr; overflow:hidden; }
     aside { background:#111c34; color:#d7e0f5; padding:28px 16px; display:flex; flex-direction:column; position:sticky; top:0; height:100vh; align-self:start; overflow-y:auto; }
     .brand { display:flex; align-items:center; gap:10px; padding:0 10px 32px; font-weight:700; font-size:18px; color:#fff; }
     .brand-mark { width:30px; height:30px; border-radius:9px; display:grid; place-items:center; background:linear-gradient(135deg,#5d89ff,#3762e8); font-size:14px; }
@@ -20,7 +21,7 @@
     .nav-item.active .nav-icon { color:#8fb0ff; }
     .aside-footer { margin-top:auto; padding-top:18px; }.aside-logout { width:100%; padding:10px 0; border:1px solid rgba(255,255,255,.16); border-radius:9px; background:transparent; color:#c9d6ef; font-size:13px; cursor:pointer; transition:.15s; }.aside-logout:hover { border-color:#e26d76; color:#fff; background:rgba(226,109,118,.15); }
     .help { margin-top:42px; padding:14px; border:1px solid #2d3e62; border-radius:10px; font-size:12px; line-height:1.7; color:#99a9c5; }
-    main { padding:34px clamp(20px,4vw,62px) 46px; max-width:1440px; width:100%; margin:auto; }
+    main { padding:34px clamp(20px,4vw,62px) 46px; max-width:1440px; width:100%; margin:auto; height:100vh; overflow-y:auto; min-width:0; box-sizing:border-box; }
     header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:30px; }.header-actions { display:flex; gap:10px; align-items:center; }
     h1 { margin:0 0 8px; font-size:25px; letter-spacing:-.03em; }
     .subtitle { margin:0; color:var(--muted); font-size:14px; }
