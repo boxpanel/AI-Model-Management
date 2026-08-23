@@ -1629,7 +1629,11 @@
       const ctx = canvas.getContext('2d');
       ctx.scale(dpr, dpr);
       ctx.clearRect(0, 0, W, H);
-      const toXY = p => Array.isArray(p) ? [Number(p[0]), Number(p[1])] : String(p).split(',').map(Number);
+      // 训练点数存储的是反转分数（186 - loss*49），此处转回真实 loss（loss 大在顶部，曲线随训练从左上往右下下降）
+      const toXY = p => {
+        const arr = Array.isArray(p) ? p : String(p).split(',');
+        return [Number(arr[0]), (186 - Number(arr[1])) / 49];
+      };
       const t = (trainPts || []).map(toXY).filter(p => p.length === 2 && isFinite(p[0]) && isFinite(p[1]));
       const v = (valPts || []).map(toXY).filter(p => p.length === 2 && isFinite(p[0]) && isFinite(p[1]));
       if (!t.length && !v.length) { ctx.fillStyle = '#8792a8'; ctx.font = '12px sans-serif'; ctx.fillText('暂无数据', W / 2 - 30, H / 2); return; }
@@ -1639,6 +1643,12 @@
       ctx.strokeStyle = '#e3e8f1'; ctx.strokeRect(0.5, 0.5, W - 1, H - 1);
       const draw = (pts, color) => { ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = 2; pts.forEach((p, i) => { const [X, Y] = px(p[0], p[1]); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }); ctx.stroke(); };
       draw(t, '#315eea'); draw(v, '#e69a37');
+      // 图例（右上角，右对齐避免文字超出画布）
+      ctx.font = '10px sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#315eea'; ctx.fillRect(W - 96, 8, 12, 3); ctx.fillStyle = '#6b7690'; ctx.fillText('训练损失', W - 80, 13);
+      ctx.fillStyle = '#e69a37'; ctx.fillRect(W - 26, 8, 12, 3); ctx.fillStyle = '#6b7690'; ctx.fillText('验证损失', W - 10, 13);
+      ctx.textAlign = 'start';
     }
     async function stopJob(taskName) {
       showConfirm('确定停止训练任务「' + taskName + '」？', async () => {
