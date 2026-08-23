@@ -181,9 +181,9 @@ for ENV_NAME in "${MODEL_ENVS[@]}"; do
   "$CONDA_BIN" run -n "$ENV_NAME" python -m pip install -r requirements.txt
   if [ "$SKIP_RKNN" = "0" ]; then
     "$CONDA_BIN" run -n "$ENV_NAME" python -m pip install "rknn-toolkit2>=2.3.2" \
-      && "$CONDA_BIN" run -n "$ENV_NAME" python -m pip install "onnx==1.14.1" \
+      && "$CONDA_BIN" run -n "$ENV_NAME" python -m pip install "onnx>=1.16.1,<1.19.0" \
       || echo "  [警告] $ENV_NAME 环境 rknn-toolkit2 安装失败（RKNN 转换不可用，不影响训练）"
-    # 注意：rknn-toolkit2 依赖 onnx.mapping，新版 onnx 已移除该属性，必须固定 onnx==1.14.1
+    # 注意：rknn-toolkit2 依赖 onnx.mapping，onnx 1.19+ 已移除该属性，必须安装兼容版本（>=1.16.1,<1.19.0）
   fi
 done
 

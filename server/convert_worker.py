@@ -119,6 +119,65 @@ def main() -> int:
 
     _ensure_pkg_resources()
 
+    def _ensure_onnx_compat() -> bool:
+        """确保 onnx 版本与 rknn-toolkit2 兼容（rknn-toolkit2 依赖顶层 onnx.mapping，新版 onnx 已移除）。
+
+        新版 onnx（1.19+）移除了顶层 mapping 属性，rknn-toolkit2 旧代码在 load_onnx 时会抛出
+        AttributeError: module 'onnx' has no attribute 'mapping'。此处检测到不兼容时自动安装
+        兼容版本 onnx>=1.16.1,<1.19.0（满足 rknn-toolkit2>=1.16.1 要求且保留 mapping），
+        并用 os.execv 重启自身进程（PID 不变，服务端 Popen 句柄
+        与 state 文件轮询均不受影响），避免用户手动装错解释器。
+        """
+        import subprocess
+
+        try:
+            import onnx
+        except ImportError:
+            compatible, version = False, "未安装"
+        else:
+            compatible = hasattr(onnx, "mapping")
+            version = getattr(onnx, "__version__", "未知")
+        if compatible:
+            return True
+        if os.environ.get("VISIONLAB_ONNX_FIXED") == "1":
+            # 已自动安装过一次仍不兼容：说明装到了错误解释器，避免无限重启循环，直接给出指引
+            state.update(
+                state="error",
+                message=(
+                    f"onnx {version} 与 rknn-toolkit2 不兼容（onnx 1.19+ 移除了 mapping），"
+                    "自动安装 onnx>=1.16.1,<1.19.0 后仍未生效，请手动执行："
+                    "python -m pip install \"onnx>=1.16.1,<1.19.0\""
+                ),
+            )
+            return False
+        state.update(
+            state="running",
+            message=f"检测到 onnx {version} 与 rknn-toolkit2 不兼容，正在自动安装 onnx>=1.16.1,<1.19.0…",
+            progress=8,
+        )
+        try:
+            result = subprocess.run(
+                [sys.executable, "-m", "pip", "install", "onnx>=1.16.1,<1.19.0"],
+                capture_output=True,
+                text=True,
+                timeout=600,
+                check=False,
+            )
+        except Exception as exc:
+            state.update(state="error", message=f"自动安装 onnx 兼容版本失败：{exc}")
+            return False
+        if result.returncode != 0:
+            state.update(
+                state="error",
+                message=f"自动安装 onnx 兼容版本失败：{result.stderr.strip()[-300:]}",
+            )
+            return False
+        state.update(state="running", message="onnx 兼容版本安装成功，正在重启转换进程使新版本生效…", progress=9)
+        os.environ["VISIONLAB_ONNX_FIXED"] = "1"
+        # execv 用同一 PID 替换当前进程映像（仅 Linux/Unix 支持，本项目部署于 Ubuntu 服务器）
+        os.execv(sys.executable, [sys.executable] + sys.argv)
+        return True  # 不可达，仅满足类型检查
+
     try:
         from ultralytics import YOLO
     except ImportError as exc:
@@ -144,6 +203,9 @@ def main() -> int:
 
     try:
         if fmt == "rknn":
+            # 第零步：确保 onnx 版本与 rknn-toolkit2 兼容（不兼容时自动修复并重启自身进程）
+            if not _ensure_onnx_compat():
+                return 1
             # 第一步：导出 ONNX（rknn-toolkit2 从 ONNX 转换，opset 12 兼容性最佳）
             state.update(state="running", message="正在导出 ONNX 中间文件…", progress=10)
             onnx_out = Path(
@@ -193,10 +255,10 @@ def main() -> int:
                 state.update(progress=95)
             except AttributeError as exc:
                 if "onnx" in str(exc):
-                    # 新版 onnx 移除了顶层 mapping 属性，rknn-toolkit2 旧代码依赖它
+                    # onnx 1.19+ 移除了顶层 mapping 属性，rknn-toolkit2 旧代码依赖它
                     raise RuntimeError(
-                        "onnx 版本与 rknn-toolkit2 不兼容（新版 onnx 移除了 mapping），"
-                        "请执行：python -m pip install \"onnx==1.14.1\""
+                        "onnx 版本与 rknn-toolkit2 不兼容（onnx 1.19+ 移除了 mapping），"
+                        "请执行：python -m pip install \"onnx>=1.16.1,<1.19.0\""
                     ) from exc
                 raise
             finally:
