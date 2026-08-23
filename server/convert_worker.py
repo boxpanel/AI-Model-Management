@@ -234,7 +234,16 @@ def main() -> int:
             out = src_path.with_suffix(".rknn")
             rknn = RKNN(verbose=False)
             try:
-                rknn.config(mean_values=[[0, 0, 0]], std_values=[[255, 255, 255]], target_platform=platform)
+                rknn.config(
+                    mean_values=[[0, 0, 0]],
+                    std_values=[[255, 255, 255]],
+                    target_platform=platform,
+                    # rknn-toolkit2 2.3.2 的 fuse_mul_into_sdpa 融合规则对含 SDPA 注意力
+                    # 模块的模型（如 YOLOv11）有 bug，构建时报
+                    # TypeError: only 0-dimensional arrays can be converted to Python scalars，
+                    # 官方提示通过 disable_rules 禁用该规则
+                    disable_rules=["fuse_mul_into_sdpa"],
+                )
                 if rknn.load_onnx(model=str(onnx_out)) != 0:
                     raise RuntimeError("加载 ONNX 模型失败")
                 # 构建 IR 图在 CPU 上进行，首次构建可能需要数分钟，先更新状态避免用户误以为卡死
