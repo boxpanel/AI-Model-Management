@@ -303,8 +303,23 @@ def main() -> int:
                     if rknn.build(do_quantization=False) != 0:
                         raise RuntimeError("构建 RKNN 模型失败")
                     state.update(state="running", message="正在导出 RKNN 文件…", progress=85)
+                    import shutil
+                    # rknn-toolkit2 部分版本会把「输出路径」当作目录写入 <路径>/best.rknn，
+                    # 预创建该目录避免 FileNotFoundError；导出成功后把产物归位到目标文件
+                    alt_dir = out.parent / (out.name[:-5] if out.name.lower().endswith(".rknn") else out.name)
+                    alt_dir.mkdir(parents=True, exist_ok=True)
                     if rknn.export_rknn(str(out)) != 0:
                         raise RuntimeError("导出 RKNN 模型失败")
+                    if out.exists() and out.is_file():
+                        # 正常文件输出：清理预创建的多余目录
+                        if alt_dir.exists() and alt_dir.is_dir() and alt_dir != out.parent:
+                            shutil.rmtree(alt_dir, ignore_errors=True)
+                    else:
+                        # rknn 将路径视为目录（写 <路径>/best.rknn）：归位到目标文件
+                        alt = alt_dir / "best.rknn"
+                        if alt.exists():
+                            alt.replace(out)
+                            shutil.rmtree(alt_dir, ignore_errors=True)
                     state.update(progress=95)
                 finally:
                     done.set()
