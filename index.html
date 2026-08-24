@@ -1426,8 +1426,10 @@
       convertJobId = '';
       converting = false;
       document.getElementById('convert-source').textContent = '源文件：' + name + '（' + path + '）';
-      // 默认保存名称 = 源文件名（去扩展名）；默认保存路径 = 源文件所在目录
-      const stem = (name || path.split('/').pop() || '').replace(/\.[^.]+$/, '');
+      // 默认保存名称 = 源文件名（去扩展名）。只取路径最后一段：仓库显示名带「任务/」前缀，
+      // 若直接作为名称会带斜杠，被当成子目录或拼接出错误文件名（如 yolo-exp-001_xxx_best.rknn）
+      const filePart = (path.split('/').pop() || name || '').split('/').pop() || '';
+      const stem = filePart.replace(/\.[^.]+$/, '');
       document.getElementById('convert-name').value = stem;
       const idx = path.lastIndexOf('/');
       document.getElementById('convert-dir').value = idx > 0 ? path.substring(0, idx) : '';

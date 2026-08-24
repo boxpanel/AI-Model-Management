@@ -226,6 +226,9 @@ def main() -> int:
         out_dir = (base_dir / out_dir).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
     out_name = (config.get("name") or "").strip() or src_path.stem
+    # 名称不允许包含路径分隔符：仓库显示名带「任务/」前缀时，直接用作名称会把文件名
+    # 当成子目录写入（或与源名拼接出 yolo-exp-001_xxx 这类错误文件名），统一清洗为单层文件名
+    out_name = out_name.replace("/", "_").replace("\\", "_").strip(" .") or src_path.stem
     # 导出产物默认落在源文件目录并以源文件名命名；仅在目标位置与默认不一致时才需要移动/重命名
     need_relocate = str(out_dir) != str(src_path.parent.resolve()) or out_name != src_path.stem
 
@@ -304,24 +307,44 @@ def main() -> int:
                         raise RuntimeError("构建 RKNN 模型失败")
                     state.update(state="running", message="正在导出 RKNN 文件…", progress=85)
                     import shutil
-                    # rknn-toolkit2 部分版本会把「输出路径」当作目录写入 <名称>/best.rknn，
-                    # 预创建该目录避免 FileNotFoundError；导出后把产物归位到目标文件
+                    # rknn-toolkit2 不同版本导出行为差异很大：有的把输出路径当目录写入
+                    # <名称>/best.rknn，有的写成 <名称>_best.rknn 单文件。先记录导出前已有的
+                    # .rknn 产物，导出后若目标文件未生成，则把「新产生」的产物归位到目标文件。
+                    existing_rknn = {p for p in out_dir.rglob("*.rknn")} if out_dir.exists() else set()
+                    # 部分版本会把输出路径当目录写入 <名称>/best.rknn，预创建该目录避免 FileNotFoundError
                     alt_dir = out.parent / (out.name[:-5] if out.name.lower().endswith(".rknn") else out.name)
                     alt_dir.mkdir(parents=True, exist_ok=True)
                     if rknn.export_rknn(str(out)) != 0:
                         raise RuntimeError("导出 RKNN 模型失败")
-                    if not (out.exists() and out.is_file()):
-                        # 目标文件未生成：递归查找输出目录下的 .rknn 产物并归位到目标文件。
-                        # 个别版本会把 out 本身建成目录（<out>/best.rknn），移动前先清理该目录
-                        for c in sorted(out.parent.rglob("*.rknn")):
-                            if c != out and c.is_file():
-                                if out.exists():
-                                    if out.is_dir():
-                                        shutil.rmtree(out, ignore_errors=True)
-                                    else:
-                                        out.unlink(missing_ok=True)
-                                c.replace(out)
-                                break
+                    new_rknn = sorted(
+                        (p for p in out_dir.rglob("*.rknn") if p not in existing_rknn and p.is_file()),
+                        key=lambda p: p.stat().st_mtime,
+                    )
+                    fresh = [p for p in new_rknn if p != out]
+                    if fresh:
+                        # 工具没有直接写到目标文件（写成了 <名称>/best.rknn 或 <名称>_best.rknn）：
+                        # 把新产生的产物归位到目标位置（覆盖旧的同名文件）
+                        if out.exists():
+                            if out.is_dir():
+                                shutil.rmtree(out, ignore_errors=True)
+                            else:
+                                out.unlink(missing_ok=True)
+                        fresh[-1].replace(out)
+                    elif not (out.exists() and out.is_file()):
+                        # 快照未识别到新产物（工具命名异常）：兜底取输出目录下最新的 .rknn
+                        candidates = sorted(
+                            (p for p in out_dir.rglob("*.rknn") if p != out and p.is_file()),
+                            key=lambda p: p.stat().st_mtime,
+                        )
+                        if candidates:
+                            if out.exists():
+                                if out.is_dir():
+                                    shutil.rmtree(out, ignore_errors=True)
+                                else:
+                                    out.unlink(missing_ok=True)
+                            candidates[-1].replace(out)
+                    # 清理 rknn-toolkit2 把输出路径当目录时创建的 <名称>/ 目录
+                    alt_dir = out.parent / (out.name[:-5] if out.name.lower().endswith(".rknn") else out.name)
                     if alt_dir.exists() and alt_dir.is_dir():
                         shutil.rmtree(alt_dir, ignore_errors=True)
                     state.update(progress=95)
