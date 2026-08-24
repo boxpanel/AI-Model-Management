@@ -113,12 +113,13 @@ def list_models(base_dir: Path, runs_dirs: list[Path] | None = None, db=None) ->
                     ver = _guess_model_version(Path(wp).name) if wp else ""
                 if not ver and task.get("model_version"):
                     ver = task["model_version"]  # 回退到模型大类
-                # 仅在解析出版本时写入，避免空值挡住下方 config.json 文件兜底
+                # 仅在解析出版本时写入，避免空值挡住下方 config.json 文件兜底；
+                # 同名任务重跑会产生多条数据库记录（list_tasks 最新在前），用 setdefault 取最新记录的值
                 if ver:
-                    task_versions[tn] = ver
+                    task_versions.setdefault(tn, ver)
                 mode = _mode_from_weights(wp)
                 if mode:
-                    task_modes[tn] = mode
+                    task_modes.setdefault(tn, mode)
         except Exception:
             pass
     # 兜底：数据库不可用/记录缺失时，直接从 runs/tasks/<任务>/config.json 读权重名（不覆盖 db 结果）
