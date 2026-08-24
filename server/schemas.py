@@ -101,6 +101,8 @@ class ConvertStartRequest(BaseModel):
     imgsz: int = 640
     device: str = "cpu"
     rknn_platform: str = "rk3588"  # RKNN 目标平台，如 rk3588 / rk3576 / rk3568 / rk3399pro
+    name: str = ""  # 自定义保存名称（空 = 源文件名）
+    output_dir: str = ""  # 自定义保存目录（空 = 源文件所在目录）
 
 
 class DraftSaveRequest(BaseModel):

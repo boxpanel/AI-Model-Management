@@ -220,6 +220,15 @@ def main() -> int:
         state.update(state="error", message=f"源文件不存在：{source}")
         return 1
 
+    # 自定义输出目录与名称（默认：源文件所在目录 + 源文件名）
+    out_dir = Path((config.get("output_dir") or "").strip() or str(src_path.parent))
+    if not out_dir.is_absolute():
+        out_dir = (base_dir / out_dir).resolve()
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_name = (config.get("name") or "").strip() or src_path.stem
+    # 导出产物默认落在源文件目录并以源文件名命名；仅在目标位置与默认不一致时才需要移动/重命名
+    need_relocate = str(out_dir) != str(src_path.parent.resolve()) or out_name != src_path.stem
+
     device = config.get("device", "cpu")
     # TensorRT 导出必须在 GPU 上进行，自动切换到 0 号卡
     if fmt == "engine" and str(device).lower() == "cpu":
@@ -233,9 +242,9 @@ def main() -> int:
             if not _ensure_onnx_compat():
                 return 1
             # 第一步：导出 ONNX（rknn-toolkit2 从 ONNX 转换，opset 12 兼容性最佳）。
-            # 若同目录已存在相同输入尺寸的 ONNX 文件则直接复用，避免重复导出耗时
+            # 若输出目录已存在相同输入尺寸的 ONNX 文件则直接复用，避免重复导出耗时
             imgsz = config.get("imgsz", 640)
-            onnx_candidate = src_path.with_suffix(".onnx")
+            onnx_candidate = out_dir / (out_name + ".onnx")
             if _onnx_matches_imgsz(onnx_candidate, imgsz):
                 state.update(state="running", message="正在加载已有 ONNX 中间文件…", progress=15)
                 onnx_out = onnx_candidate
@@ -258,7 +267,7 @@ def main() -> int:
                     state.update(state="error", message="未安装 rknn-toolkit2，无法转换 RKNN 格式，请先 pip install rknn-toolkit2")
                 return 1
             platform = str(config.get("rknn_platform", "rk3588"))
-            out = src_path.with_suffix(".rknn")
+            out = out_dir / (out_name + ".rknn")
             rknn = RKNN(verbose=False)
             try:
                 rknn.config(
@@ -342,6 +351,21 @@ def main() -> int:
             finally:
                 done.set()
             state.update(progress=95)
+            # 自定义输出目录/名称：导出产物默认在源文件目录（以源文件名命名），
+            # 目标位置不同或名称不同时移动/重命名到目标位置（目录型保留 _openvino_model 等后缀）
+            if need_relocate:
+                import shutil
+                if out_path.is_dir():
+                    dest = out_dir / (out_name + out_path.name[len(src_path.stem):])
+                    if dest.exists():
+                        shutil.rmtree(dest)
+                    shutil.move(str(out_path), str(dest))
+                else:
+                    dest = out_dir / (out_name + out_path.suffix)
+                    if dest.exists():
+                        dest.unlink()
+                    shutil.move(str(out_path), str(dest))
+                out_path = dest
         if stop_event["stop"]:
             state.update(state="stopped", message="转换已停止")
             return 0

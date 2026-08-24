@@ -191,6 +191,19 @@
       <div class="modal-head"><h2>模型转换</h2><button class="modal-close" id="convert-modal-close" type="button">×</button></div>
       <p class="hint" id="convert-source" style="margin-bottom:16px"></p>
       <div class="convert-formats" id="convert-formats"></div>
+      <div class="convert-fields" style="margin-top:14px">
+        <div style="margin-bottom:10px">
+          <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:4px">保存名称</label>
+          <input id="convert-name" type="text" style="width:100%;box-sizing:border-box" placeholder="默认使用当前名称">
+        </div>
+        <div style="margin-bottom:10px">
+          <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:4px">保存路径</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input id="convert-dir" type="text" readonly style="flex:1;box-sizing:border-box" placeholder="默认当前路径">
+            <button class="btn" id="convert-dir-btn" type="button">选择</button>
+          </div>
+        </div>
+      </div>
       <div class="convert-progress" id="convert-progress" style="display:none;margin-top:14px;align-items:center;gap:10px">
         <div style="flex:1;height:8px;background:#e8ecf4;border-radius:6px;overflow:hidden"><div id="convert-progress-bar" style="height:100%;width:0%;background:#3b82f6;border-radius:6px;transition:width .5s"></div></div>
         <span id="convert-pct" style="font-size:13px;color:var(--muted);min-width:42px;text-align:right">0%</span>
@@ -1079,7 +1092,10 @@
       document.getElementById('dir-current').textContent = '加载中…';
       document.getElementById('dir-list').innerHTML = '<div class="dir-empty">加载中…</div>';
       modal.style.display = 'flex';
-      loadDirList(composeDsBrowsePath(inputId));
+      // 转换保存路径：从输入框当前值开始浏览；数据集路径沿用原有逻辑
+      const cur = document.getElementById(inputId).value.trim();
+      const start = (inputId === 'convert-dir' && cur) ? cur : composeDsBrowsePath(inputId);
+      loadDirList(start || '/');
     }
     document.querySelectorAll('.path-pick').forEach(btn => {
       btn.addEventListener('click', () => openDirPicker(btn.dataset.target));
@@ -1097,8 +1113,10 @@
       const base = modal.dataset.base || '';
       const input = document.getElementById(dirTargetId);
       let value = path;
-      // 训练/验证/测试路径：浏览目录在项目根内时写回相对路径（与数据根目录保持相对）
-      if (dirTargetId !== 'ds-root' && base && path.startsWith(base)) {
+      // 转换保存路径写回绝对路径（后端按绝对路径创建目录）；数据集路径在项目根内写回相对
+      if (dirTargetId === 'convert-dir') {
+        value = path;
+      } else if (dirTargetId !== 'ds-root' && base && path.startsWith(base)) {
         value = path.slice(base.length).replace(/^\/+/, '');
       }
       input.value = value;
@@ -1408,6 +1426,11 @@
       convertJobId = '';
       converting = false;
       document.getElementById('convert-source').textContent = '源文件：' + name + '（' + path + '）';
+      // 默认保存名称 = 源文件名（去扩展名）；默认保存路径 = 源文件所在目录
+      const stem = (name || path.split('/').pop() || '').replace(/\.[^.]+$/, '');
+      document.getElementById('convert-name').value = stem;
+      const idx = path.lastIndexOf('/');
+      document.getElementById('convert-dir').value = idx > 0 ? path.substring(0, idx) : '';
       const box = document.getElementById('convert-formats');
       box.innerHTML = '';
       EXPORT_FORMATS.forEach((f, i) => {
@@ -1446,7 +1469,14 @@
         const result = await api('/api/models/convert', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ path: convertPath, fmt, imgsz: 640, device: 'cpu' })
+          body: JSON.stringify({
+            path: convertPath,
+            fmt,
+            imgsz: 640,
+            device: 'cpu',
+            name: document.getElementById('convert-name').value.trim(),
+            output_dir: document.getElementById('convert-dir').value.trim()
+          })
         });
         if (!result.job_id) { statusEl.textContent = '提交失败：' + (result.detail || '未知错误'); submitBtn.disabled = false; return; }
         convertJobId = result.job_id;
@@ -1510,6 +1540,7 @@
       closeConvertModal();
     });
     document.getElementById('convert-modal-close').addEventListener('click', closeConvertModal);
+    document.getElementById('convert-dir-btn').addEventListener('click', () => openDirPicker('convert-dir'));
     loadWeightsSelect().then(() => suggestTaskName());
     function addLog(text, kind='', taskName='') {
       if (taskName) {
