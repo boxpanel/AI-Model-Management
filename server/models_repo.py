@@ -32,7 +32,7 @@ def _mode_from_weights(wp: str) -> str:
     return ""
 
 
-def _model_version_for(path: Path, source: str, task_versions: dict[str, str]) -> str:
+def _model_version_for(path: Path, source: str, task_versions: dict[str, str], task_name: str | None = None) -> str:
     """解析权重条目的模型版本：文件名 → 同目录源 .pt（转换产物继承）→ 训练任务记录 → 输出目录中间层大类。"""
     ver = _guess_model_version(path.name)
     if ver:
@@ -44,7 +44,7 @@ def _model_version_for(path: Path, source: str, task_versions: dict[str, str]) -
         if ver:
             return ver
     if source == "training":
-        ver = task_versions.get(path.parent.parent.name, "")
+        ver = task_versions.get(task_name or path.parent.parent.name, "")
         if not ver:
             # 最终兜底：从输出目录中间层解析大类（runs/YOLO11/<任务>/weights/... → YOLO11）
             parts = path.parts
@@ -158,20 +158,41 @@ def list_models(base_dir: Path, runs_dirs: list[Path] | None = None, db=None) ->
     for runs in runs_list:
         if not runs.exists():
             continue
-        for path in sorted(runs.glob("**/weights/*")):
-            if _is_model_dir(path):
-                task_name = path.parent.parent.name
-                item = _entry_info(base_dir, path, "training", f"{task_name}/{path.name}")
-                item["model_version"] = _model_version_for(path, "training", task_versions)
-                item["training_mode"] = task_modes.get(task_name, "")
-                items.append(item)
-            elif path.is_file() and path.suffix.lower() in FILE_EXTS:
+        # 定位所有 weights 目录并递归扫描任意层级：rknn-toolkit2 会把产物写成
+        # <名称>/best.rknn 嵌套目录，仅扫 weights/* 单层会漏掉这类自定义名称的转换产物
+        for weights_dir in sorted(runs.rglob("weights")):
+            if not weights_dir.is_dir():
+                continue
+            task_name = weights_dir.parent.name
+            for path in sorted(weights_dir.rglob("*")):
+                if path.is_dir():
+                    # 目录型产物（openvino/ncnn 的 _model 目录）整体作为一个条目
+                    if not _is_model_dir(path):
+                        continue
+                    item = _entry_info(base_dir, path, "training", f"{task_name}/{path.name}")
+                    item["model_version"] = _model_version_for(path, "training", task_versions, task_name)
+                    item["training_mode"] = task_modes.get(task_name, "")
+                    items.append(item)
+                    continue
+                if not (path.is_file() and path.suffix.lower() in FILE_EXTS):
+                    continue
+                # _model 目录内部文件已随目录整体展示，跳过避免重复条目
+                inside_marker = False
+                for parent in path.parents:
+                    if parent == weights_dir:
+                        break
+                    if parent.name.endswith(DIR_MARKER) and parent.is_dir():
+                        inside_marker = True
+                        break
+                if inside_marker:
+                    continue
                 rel = str(path.relative_to(base_dir)).replace("\\", "/")
                 if any(item["path"] == rel for item in items):
                     continue
-                task_name = path.parent.parent.name
-                item = _entry_info(base_dir, path, "training", f"{task_name}/{path.name}")
-                item["model_version"] = _model_version_for(path, "training", task_versions)
+                # 名称取相对 weights 的路径：直接产物 <任务>/<文件>，嵌套产物 <任务>/<目录>/<文件>
+                sub = str(path.relative_to(weights_dir)).replace("\\", "/")
+                item = _entry_info(base_dir, path, "training", f"{task_name}/{sub}")
+                item["model_version"] = _model_version_for(path, "training", task_versions, task_name)
                 item["training_mode"] = task_modes.get(task_name, "")
                 items.append(item)
 
