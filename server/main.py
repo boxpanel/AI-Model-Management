@@ -12,7 +12,7 @@ from typing import Any
 
 from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 
 from .auth import auth_service, ensure_default_user
 from .database import Database
@@ -648,14 +648,27 @@ async def models_list() -> list[dict[str, Any]]:
 
 
 @app.get("/api/models/download")
-async def model_download(path: str) -> FileResponse:
+async def model_download(path: str) -> Any:
     base = BASE_DIR.resolve()
     target = (base / path).resolve()
     if not _is_within(base, target):
         raise HTTPException(status_code=400, detail="非法路径")
-    if not target.exists() or not target.is_file():
+    if not target.exists():
         raise HTTPException(status_code=404, detail="文件不存在")
-    return FileResponse(target, filename=target.name)
+    if target.is_file():
+        return FileResponse(target, filename=target.name)
+    # 目录型转换产物（openvino/ncnn 等 _model 目录）打包为 zip 下载
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for f in sorted(target.rglob("*")):
+            if f.is_file():
+                zf.write(f, f.relative_to(target).as_posix())
+    buf.seek(0)
+    return StreamingResponse(
+        buf,
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{target.name}.zip"'},
+    )
 
 
 @app.delete("/api/models")

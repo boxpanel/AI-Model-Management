@@ -197,11 +197,8 @@
           <input id="convert-name" type="text" style="width:100%;box-sizing:border-box" placeholder="默认使用当前名称">
         </div>
         <div style="margin-bottom:10px">
-          <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:4px">保存路径</label>
-          <div style="display:flex;gap:8px;align-items:center">
-            <input id="convert-dir" type="text" readonly style="flex:1;box-sizing:border-box" placeholder="默认当前路径">
-            <button class="btn" id="convert-dir-btn" type="button">选择</button>
-          </div>
+          <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:4px">保存位置</label>
+          <p class="hint" style="margin:0">转换产物保存在服务器模型仓库，完成后自动下载到本地（在浏览器下载窗口选择保存位置）。目录型产物（OpenVINO/NCNN）自动打包为 zip。</p>
         </div>
       </div>
       <div class="convert-progress" id="convert-progress" style="display:none;margin-top:14px;align-items:center;gap:10px">
@@ -1092,10 +1089,7 @@
       document.getElementById('dir-current').textContent = '加载中…';
       document.getElementById('dir-list').innerHTML = '<div class="dir-empty">加载中…</div>';
       modal.style.display = 'flex';
-      // 转换保存路径：从输入框当前值开始浏览；数据集路径沿用原有逻辑
-      const cur = document.getElementById(inputId).value.trim();
-      const start = (inputId === 'convert-dir' && cur) ? cur : composeDsBrowsePath(inputId);
-      loadDirList(start || '/');
+      loadDirList(composeDsBrowsePath(inputId) || '/');
     }
     document.querySelectorAll('.path-pick').forEach(btn => {
       btn.addEventListener('click', () => openDirPicker(btn.dataset.target));
@@ -1113,10 +1107,8 @@
       const base = modal.dataset.base || '';
       const input = document.getElementById(dirTargetId);
       let value = path;
-      // 转换保存路径写回绝对路径（后端按绝对路径创建目录）；数据集路径在项目根内写回相对
-      if (dirTargetId === 'convert-dir') {
-        value = path;
-      } else if (dirTargetId !== 'ds-root' && base && path.startsWith(base)) {
+      // 数据集路径在项目根内写回相对路径
+      if (dirTargetId !== 'ds-root' && base && path.startsWith(base)) {
         value = path.slice(base.length).replace(/^\/+/, '');
       }
       input.value = value;
@@ -1431,8 +1423,6 @@
       const filePart = (path.split('/').pop() || name || '').split('/').pop() || '';
       const stem = filePart.replace(/\.[^.]+$/, '');
       document.getElementById('convert-name').value = stem;
-      const idx = path.lastIndexOf('/');
-      document.getElementById('convert-dir').value = idx > 0 ? path.substring(0, idx) : '';
       const box = document.getElementById('convert-formats');
       box.innerHTML = '';
       EXPORT_FORMATS.forEach((f, i) => {
@@ -1476,8 +1466,7 @@
             fmt,
             imgsz: 640,
             device: 'cpu',
-            name: document.getElementById('convert-name').value.trim(),
-            output_dir: document.getElementById('convert-dir').value.trim()
+            name: document.getElementById('convert-name').value.trim()
           })
         });
         if (!result.job_id) { statusEl.textContent = '提交失败：' + (result.detail || '未知错误'); submitBtn.disabled = false; return; }
@@ -1519,6 +1508,13 @@
           loadModels();
           loadWeightsSelect();
           showToast('模型转换完成');
+          // 转换产物自动下载到本地（浏览器下载窗口即本地保存位置选择）
+          if (st.output) {
+            const outPath = String(st.output).replace(/^\/+/, '');
+            const seg = outPath.split('/').pop() || 'model';
+            const isDirLike = /_model$/.test(seg);
+            downloadFile(outPath, isDirLike ? seg + '.zip' : seg);
+          }
         } else if (st.state === 'error' || st.state === 'stopped') {
           if (convertTimer) { clearInterval(convertTimer); convertTimer = null; }
           converting = false;
@@ -1542,7 +1538,6 @@
       closeConvertModal();
     });
     document.getElementById('convert-modal-close').addEventListener('click', closeConvertModal);
-    document.getElementById('convert-dir-btn').addEventListener('click', () => openDirPicker('convert-dir'));
     loadWeightsSelect().then(() => suggestTaskName());
     function addLog(text, kind='', taskName='') {
       if (taskName) {
